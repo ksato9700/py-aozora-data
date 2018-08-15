@@ -104,7 +104,7 @@ def _type_conversion(key, val):
         return None if val == '' else parser.parse(val)
 
     elif key == 'role':
-        return ROLE_MAP.get(val, None)
+        return ROLE_MAP.get(val, 'others')
 
     else:
         return val
@@ -135,6 +135,7 @@ class DB:
         self.db = MongoClient(MONGO_URL + '/aozora').aozora
 
     def updated(self, data, refresh):
+        next(data)
         if refresh:
             return data
         books = self.db.books
@@ -144,7 +145,6 @@ class DB:
 
         if the_latest_item:
             last_release_date = str(the_latest_item['release_date'])
-            next(data)
             return filter(lambda e: last_release_date < e[11], data)
         else:
             return data
@@ -205,7 +205,10 @@ class DB:
 
 def _get_logger(name):
     from scrapy.utils.log import get_scrapy_root_handler
-    get_scrapy_root_handler().setLevel(logging.INFO)
+    root_handler = get_scrapy_root_handler()
+    if root_handler:
+        root_handler.setLevel(logging.INFO)
+
     logging.getLogger('scrapy').setLevel(logging.WARNING)
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
