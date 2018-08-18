@@ -126,16 +126,24 @@ class DB:
 
     def csv_updated(self, data, refresh):
         next(data)
+        logger = get_logger('__init__.csv_updated')
         if refresh:
             return data
         books = self.db_client.books
         the_latest_item = books.find_one({},
                                          projection={'release_date': 1},
                                          sort=[('release_date', -1)])
-
+        logger.debug('the_latest_item: %s', the_latest_item)
         if the_latest_item:
-            last_release_date = str(the_latest_item['release_date'])
-            return filter(lambda e: last_release_date < e[11], data)
+            last_release_date = str(the_latest_item['release_date'].date())
+            logger.debug('last_release_date: %s', last_release_date)
+
+            def _compare_date(a, b):
+                if a < b:
+                    logger.debug('_compare_date: %s < %s = %s', a, b, a<b)
+                return a < b
+
+            return filter(lambda e: _compare_date(last_release_date, e[11]), data)
         else:
             return data
 
@@ -165,7 +173,7 @@ class DB:
         for book, person, role in map(_create_objs, updated):
             book_id = book['book_id']
             if book_id not in books_batch:
-                book['persons'] = []
+                # book['persons'] = []
                 books_batch[book_id] = book
 
             if role not in books_batch[book_id]:
@@ -180,12 +188,12 @@ class DB:
                 'first_name': first_name,
             })
 
-            books_batch[book_id]['persons'].append({
-                'person_id': person_id,
-                'last_name': last_name,
-                'first_name': first_name,
-                'role': role
-            })
+            # books_batch[book_id]['persons'].append({
+            #     'person_id': person_id,
+            #     'last_name': last_name,
+            #     'first_name': first_name,
+            #     'role': role
+            # })
             if person_id not in persons_batch:
                 persons_batch[person_id] = person
 
@@ -203,12 +211,14 @@ class DB:
 
 
 def get_logger(name):
+    level = logging.root.getEffectiveLevel()
+    level = logging.INFO if level == logging.NOTSET else level
     from scrapy.utils.log import get_scrapy_root_handler
     root_handler = get_scrapy_root_handler()
     if root_handler:
-        root_handler.setLevel(logging.INFO)
+        root_handler.setLevel(level)
 
     logging.getLogger('scrapy').setLevel(logging.WARNING)
     logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(level)
     return logger

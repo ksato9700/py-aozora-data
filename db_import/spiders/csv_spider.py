@@ -24,5 +24,8 @@ class CSVSpider(Spider):
         dbc = DB()
         refresh = False
         updated = dbc.csv_updated(_get_csv(response.body), refresh)
+        logger = get_logger('CSVSpider::parse')
+        updated = list(updated)
+        logger.debug(updated)
         count = dbc.csv_import_data(updated)
-        get_logger('CSVSpider::parse').info('%d entries are updated', count)
+        logger.info('%d entries are updated', count)
