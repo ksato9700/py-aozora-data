@@ -91,3 +91,5 @@ ROBOTSTXT_OBEY = True
 
 import logging
 LOG_LEVEL = logging.WARNING
+
+ROBOTSTXT_OBEY = False
