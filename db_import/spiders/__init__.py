@@ -138,10 +138,10 @@ class DB:
             last_release_date = str(the_latest_item['release_date'].date())
             logger.debug('last_release_date: %s', last_release_date)
 
-            def _compare_date(a, b):
-                if a < b:
-                    logger.debug('_compare_date: %s < %s = %s', a, b, a<b)
-                return a < b
+            def _compare_date(date_a, date_b):
+                if date_a < date_b:
+                    logger.debug('_compare_date: %s < %s', date_a, date_b)
+                return date_a < date_b
 
             return filter(lambda e: _compare_date(last_release_date, e[11]), data)
         else:
