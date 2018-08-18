@@ -11,7 +11,7 @@ class PidSpider(Spider):
         def _pidnames(trv):
             tds = trv.xpath('td/text()').extract()
             return {
-                'id': tds[0].strip(),
+                'id': int(tds[0].strip()),
                 'name': tds[1].strip().replace('　', ' '),
             }
 
