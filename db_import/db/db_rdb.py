@@ -127,12 +127,3 @@ class DB:
             data["role"] = data["role"].value
             self.db.add(Contributor(**data))
             self.db.commit()
-
-
-def main():
-    db = DB("sqlite:///./test.db")
-    db.store_book({"book_id": 123})
-
-
-if __name__ == "__main__":
-    main()

@@ -67,10 +67,6 @@ FIELD_NAMES = (
     "html_updated",
 )
 
-# CSV_URL = "https://www.aozora.gr.jp/index_pages/list_person_all_extended_utf8.zip"
-CSV_URL = "http://localhost:9000/list_person_all_extended_utf8.zip"
-# CSV_URL = "http://localhost:9000/xx.zip"
-
 
 def _get_csv(data: bytes) -> DictReader:
     with ZipFile(BytesIO(data)) as zipfile:
@@ -81,8 +77,8 @@ def _get_csv(data: bytes) -> DictReader:
         )
 
 
-def import_from_csv(db):
-    resp = requests.get(CSV_URL)
+def import_from_csv(csv_url: str, db):
+    resp = requests.get(csv_url)
     resp.raise_for_status()
 
     csv_obj: DictReader = _get_csv(resp.content)
