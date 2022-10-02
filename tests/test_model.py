@@ -2,8 +2,9 @@ import json
 from datetime import date
 
 import pytest
-from db_import.model import Book, Contributor, Person, Role
 from pydantic import ValidationError
+
+from db_import.model import Book, Contributor, Person, Role, Worker
 
 
 def test_contributor():
@@ -162,3 +163,13 @@ def test_model(input_data: dict):
 
     person2 = Person(**person.dict())
     assert person == person2
+
+
+def test_worker():
+    data = {"worker_id": 1, "name": "worker_001"}
+    worker = Worker(**data)
+    assert worker.worker_id == data["worker_id"]
+    assert worker.name == data["name"]
+
+    worker2 = Worker(**worker.dict())
+    assert worker == worker2

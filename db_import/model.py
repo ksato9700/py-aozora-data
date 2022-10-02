@@ -136,6 +136,11 @@ class Person(BaseModel):
                 ValidationErr(f"{val}")
 
 
+class Worker(BaseModel):
+    worker_id: int
+    name: str
+
+
 # def main():
 #     book = Book(**book_data)
 #     print(book)

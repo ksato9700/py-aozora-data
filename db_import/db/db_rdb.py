@@ -4,7 +4,7 @@ from sqlalchemy import Boolean, Column, Date, ForeignKey, Integer, String, creat
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from ..model import Book, Contributor, Person
+from ..model import Book, Contributor, Person, Worker
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -82,6 +82,12 @@ class DbContributor(Base):
     role = Column("role", Integer)
 
 
+class DbWorker(Base):
+    __tablename__ = "workers"
+    worker_id = Column(Integer, primary_key=True)
+    name = Column("name", String)
+
+
 class DB:
     def __init__(self, engine: str = "sqlite+pysqlite:///:memory:"):
         engine = create_engine(engine, echo=False, future=True)
@@ -106,6 +112,9 @@ class DB:
             .first()
         )
 
+    def _get_worker(self, worker_id: int) -> DbWorker:
+        return self.db.query(DbWorker).filter(DbWorker.worker_id == worker_id).first()
+
     def get_book(self, book_id: int) -> Book | None:
         book = self._get_book(book_id)
         if book:
@@ -127,6 +136,14 @@ class DB:
         if contributor:
             contributor_dict = contributor.__dict__
             return Contributor(**contributor_dict)
+        else:
+            return None
+
+    def get_worker(self, worker_id: int) -> Worker | None:
+        worker = self._get_worker(worker_id)
+        if worker:
+            worker_dict = worker.__dict__
+            return Worker(**worker_dict)
         else:
             return None
 
@@ -163,10 +180,19 @@ class DB:
             )
             .first()
         )
-        if contributor:
-            print(f"{data['book_id']=}, {data['person_id']=}, {data['role']=}")
-            pass
-        else:
+        if not contributor:
             data["role"] = data["role"].value
             self.db.add(DbContributor(**data))
+            self.db.commit()
+
+    def store_worker(self, data: dict):
+        worker = (
+            self.db.query(DbWorker)
+            .filter(DbWorker.worker_id == data["worker_id"])
+            .first()
+        )
+        if worker:
+            pass
+        else:
+            self.db.add(DbWorker(**data))
             self.db.commit()
