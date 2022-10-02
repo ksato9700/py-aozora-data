@@ -2,18 +2,63 @@ import json
 from datetime import date
 
 import pytest
-from db_import.model import Book, Person
+from db_import.model import Book, Contributor, Person, Role
+from pydantic import ValidationError
+
+
+def test_contributor():
+    # normal case
+    for idx, role_str in enumerate(("著者", "翻訳者", "編者", "校訂者", "その他")):
+        contributor_data = {
+            "book_id": 10000 + idx,
+            "person_id": 20000 + idx,
+            "role": role_str,
+        }
+        contributor = Contributor(**contributor_data)
+        assert contributor.book_id == contributor_data["book_id"]
+        assert contributor.person_id == contributor_data["person_id"]
+        assert contributor.role == Role(idx)
+
+    # reimport case
+    contributor_data = {"book_id": 30000, "person_id": 40000, "role": "著者"}
+    contributor_0 = Contributor(**contributor_data)
+    contributor_1 = Contributor(**(contributor_0.dict()))
+    assert contributor_0 == contributor_1
+
+    # initialize by integer
+    contributor_data = {"book_id": 30000, "person_id": 40000, "role": 3}
+    contributor = Contributor(**contributor_data)
+    assert contributor.role == Role.REVISOR
+
+    # invalid case
+    contributor_data = {"book_id": 30000, "person_id": 40000, "role": "画家"}
+    with pytest.raises(ValidationError) as error:
+        Contributor(**contributor_data)
+
+    assert (
+        str(error.value)
+        == "1 validation error for Contributor\nrole\n  画家 (type=value_error)"
+    )
+
+    contributor_data = {"book_id": 30000, "person_id": 40000, "role": 10}
+    with pytest.raises(ValidationError) as error:
+        Contributor(**contributor_data)
+
+    assert (
+        str(error.value)
+        == "1 validation error for Contributor\nrole\n  10 (type=value_error)"
+    )
 
 
 @pytest.fixture()
-def book_data():
-    with open("tests/data/book_059898.json") as fp:
+def input_data():
+    with open("tests/data/010003.json") as fp:
         return json.load(fp)
 
 
-def test_import_from_csv(book_data: dict):
-    book = Book(**book_data)
-    person = Person(**book_data)
+def test_model(input_data: dict):
+    book = Book(**input_data)
+    person = Person(**input_data)
 
     book_str_keys = (
         "base_book_1",
@@ -79,25 +124,25 @@ def test_import_from_csv(book_data: dict):
     person_bool_keys = ("author_copyright",)
 
     for key in book_str_keys:
-        assert getattr(book, key) == book_data[key]
+        assert getattr(book, key) == input_data[key]
 
     for key in book_int_keys:
-        assert getattr(book, key) == int(book_data[key])
+        assert getattr(book, key) == int(input_data[key])
 
     for key in book_date_keys:
-        assert getattr(book, key) == date.fromisoformat(book_data[key])
+        assert getattr(book, key) == date.fromisoformat(input_data[key])
 
     for key in book_bool_keys:
-        assert getattr(book, key) == (book_data[key] != "なし")
+        assert getattr(book, key) == (input_data[key] != "なし")
 
     for key in person_str_keys:
-        assert getattr(person, key) == book_data[key]
+        assert getattr(person, key) == input_data[key]
 
     for key in person_int_keys:
-        assert getattr(person, key) == int(book_data[key])
+        assert getattr(person, key) == int(input_data[key])
 
     for key in person_bool_keys:
-        assert getattr(person, key) == (book_data[key] != "なし")
+        assert getattr(person, key) == (input_data[key] != "なし")
 
     assert set(
         book_str_keys
@@ -108,4 +153,12 @@ def test_import_from_csv(book_data: dict):
         + person_int_keys
         + person_bool_keys
         + ("role",)
-    ) == set(book_data.keys())
+    ) == set(input_data.keys())
+
+    # reimport case
+
+    book2 = Book(**book.dict())
+    assert book == book2
+
+    person2 = Person(**person.dict())
+    assert person == person2

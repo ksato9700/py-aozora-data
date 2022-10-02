@@ -1,5 +1,4 @@
 *.db
-*.csv
-*.zip
+list_person_all_extended_utf8*
 pid.html
 

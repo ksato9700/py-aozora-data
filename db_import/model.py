@@ -1,10 +1,11 @@
 from datetime import date
-from enum import Enum
+from enum import IntEnum
+from xml.dom import ValidationErr
 
 from pydantic import BaseModel, HttpUrl, validator
 
 
-class Role(Enum):
+class Role(IntEnum):
     AUTHOR = 0
     TRANSLATOR = 1
     EDITOR = 2
@@ -20,16 +21,29 @@ class Contributor(BaseModel):
     @validator("role", pre=True)
     def validate_role(val):
         match val:
-            case "著者":
-                return Role.AUTHOR
-            case "翻訳者":
-                return Role.TRANSLATOR
-            case "編者":
-                return Role.EDITOR
-            case "校訂者":
-                return Role.REVISOR
-            case "その他":
-                return Role.OTHER
+            case Role(val):
+                return val
+            case int(val):
+                if val in Role.__members__.values():
+                    return Role(val)
+                else:
+                    raise ValueError(f"{val}")
+            case str(val):
+                match val:
+                    case "著者":
+                        return Role.AUTHOR
+                    case "翻訳者":
+                        return Role.TRANSLATOR
+                    case "編者":
+                        return Role.EDITOR
+                    case "校訂者":
+                        return Role.REVISOR
+                    case "その他":
+                        return Role.OTHER
+                    case _:
+                        raise ValueError(f"{val}")
+            case _:
+                raise ValueError(f"{val}")
 
 
 class Book(BaseModel):
@@ -78,7 +92,13 @@ class Book(BaseModel):
 
     @validator("copyright", pre=True)
     def validate_copyright(cls, val) -> bool:
-        return val != "なし"
+        match val:
+            case bool(val):
+                return val
+            case str(val):
+                return val != "なし"
+            case _:
+                ValidationErr(f"{val}")
 
     @validator(
         "text_url", "text_last_modified", "html_url", "html_last_modified", pre=True
@@ -107,7 +127,13 @@ class Person(BaseModel):
 
     @validator("author_copyright", pre=True)
     def validate_copyright(cls, val) -> bool:
-        return val != "なし"
+        match val:
+            case bool(val):
+                return val
+            case str(val):
+                return val != "なし"
+            case _:
+                ValidationErr(f"{val}")
 
 
 # def main():
