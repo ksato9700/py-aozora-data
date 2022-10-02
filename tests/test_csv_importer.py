@@ -1,6 +1,7 @@
 import pytest
-from db_import.importer.csv_importer import import_from_csv
-from db_import.model import Book, Contributor, Person, Role
+
+from aozora_data.importer.csv_importer import import_from_csv
+from aozora_data.model import Book, Contributor, Person, Role
 
 
 class FakeDB:

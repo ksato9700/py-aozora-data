@@ -4,7 +4,7 @@ from datetime import date
 import pytest
 from pydantic import ValidationError
 
-from db_import.model import Book, Contributor, Person, Role, Worker
+from aozora_data.model import Book, Contributor, Person, Role, Worker
 
 
 def test_contributor():

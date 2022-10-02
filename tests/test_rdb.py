@@ -2,8 +2,8 @@ import json
 
 import pytest
 
-from db_import.db.db_rdb import DB
-from db_import.model import Book, Contributor, Person, Worker
+from aozora_data.db.db_rdb import DB
+from aozora_data.model import Book, Contributor, Person, Worker
 
 
 @pytest.fixture()

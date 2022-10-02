@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "py-db-import"
+name = "py-aozora-data"
 version = "2.0.0"
-description = "Import Aozora-bunko data to a DB"
+description = "Aozora-bunko data model"
 authors = ["Ken Sato <ksato9700@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "db_import"}]
+packages = [{include = "aozora_data"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
