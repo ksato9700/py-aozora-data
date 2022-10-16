@@ -1,1 +1,1 @@
-# DB Importer for Aozora-Bunko Data
+# Access library for Aozora-Bunko DataBase

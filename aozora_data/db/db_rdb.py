@@ -97,6 +97,9 @@ class DB:
     def __del__(self):
         self.db.close()
 
+    def _get_books(self, limit=100) -> DbBook:
+        return self.db.query(DbBook).limit(limit)
+
     def _get_book(self, book_id: int) -> DbBook:
         return self.db.query(DbBook).filter(DbBook.book_id == book_id).first()
 
@@ -114,6 +117,9 @@ class DB:
 
     def _get_worker(self, worker_id: int) -> DbWorker:
         return self.db.query(DbWorker).filter(DbWorker.worker_id == worker_id).first()
+
+    def get_books(self) -> list[Book]:
+        return [Book(**(book.__dict__)) for book in self._get_books()]
 
     def get_book(self, book_id: int) -> Book | None:
         book = self._get_book(book_id)

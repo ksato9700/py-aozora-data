@@ -13,11 +13,16 @@ PID_URL = os.environ.get(
     "http://reception.aozora.gr.jp/widlist.php?page=1&pagerow=-1",
 )
 
+DB_URL = os.environ.get("AOZORA_DB_URL", "sqlite:///./aozora.db")
+
 
 def main():
-    db = DB("sqlite:///./test.db")
-    import_from_csv(CSV_URL, db)
-    import_from_pid(PID_URL, db)
+    db = DB(DB_URL)
+    if CSV_URL:
+        import_from_csv(CSV_URL, db)
+
+    if PID_URL:
+        import_from_pid(PID_URL, db)
 
 
 if __name__ == "__main__":
