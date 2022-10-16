@@ -61,3 +61,12 @@ def test_import_from_csv(db: FakeDB, requests_mock):
 
         assert len(db.persons) == 4
         assert len(db.contributors) == 4
+
+
+def test_import_from_csv_with_limit(db: FakeDB, requests_mock):
+    csv_url = "http://test.csv.zip"
+    with open("tests/data/test.csv.zip", "rb") as fp:
+        requests_mock.get(csv_url, body=fp)
+        import_from_csv(csv_url, db, limit=2)
+
+        assert len(db.books) == 2

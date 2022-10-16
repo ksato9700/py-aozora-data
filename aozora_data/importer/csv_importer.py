@@ -77,7 +77,7 @@ def _get_csv(data: bytes) -> DictReader:
         )
 
 
-def import_from_csv(csv_url: str, db):
+def import_from_csv(csv_url: str, db, limit: int = 0):
     resp = requests.get(csv_url)
     resp.raise_for_status()
 
@@ -85,7 +85,9 @@ def import_from_csv(csv_url: str, db):
     logger.debug(csv_obj)
     next(csv_obj)  # skip the first row
 
-    for row in csv_obj:
+    for idx, row in enumerate(csv_obj):
+        if limit > 0 and idx >= limit:
+            break
         try:
             db.store_book(Book(**row).dict())
             db.store_person(Person(**row).dict())
