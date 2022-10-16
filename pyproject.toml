@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "py-aozora-data"
-version = "2.0.2"
+version = "2.0.3"
 description = "Aozora-bunko data model"
 authors = ["Ken Sato <ksato9700@gmail.com>"]
 license = "MIT"

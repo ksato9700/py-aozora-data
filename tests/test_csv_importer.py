@@ -1,6 +1,6 @@
 import pytest
 
-from aozora_data.importer.csv_importer import import_from_csv
+from aozora_data.importer.csv_importer import import_from_csv, import_from_csv_url
 from aozora_data.model import Book, Contributor, Person, Role
 
 
@@ -41,10 +41,31 @@ def db():
 
 
 def test_import_from_csv(db: FakeDB, requests_mock):
+    with open("tests/data/test.csv", "r") as fp:
+        import_from_csv(fp, db)
+
+        assert len(db.books) == 4
+
+        book_id = 10001
+        person_id = 20001
+
+        book_01 = db.get_book(book_id)
+        person_01 = db.get_person(person_id)
+        contributor_01 = db.get_contributor(book_id, person_id)
+
+        assert book_01.book_id == book_id
+        assert person_01.person_id == person_id
+        assert contributor_01.role == Role(1)
+
+        assert len(db.persons) == 4
+        assert len(db.contributors) == 4
+
+
+def test_import_from_csv_url(db: FakeDB, requests_mock):
     csv_url = "http://test.csv.zip"
     with open("tests/data/test.csv.zip", "rb") as fp:
         requests_mock.get(csv_url, body=fp)
-        import_from_csv(csv_url, db)
+        import_from_csv_url(csv_url, db)
 
         assert len(db.books) == 4
 
@@ -63,10 +84,10 @@ def test_import_from_csv(db: FakeDB, requests_mock):
         assert len(db.contributors) == 4
 
 
-def test_import_from_csv_with_limit(db: FakeDB, requests_mock):
+def test_import_from_csv_url_with_limit(db: FakeDB, requests_mock):
     csv_url = "http://test.csv.zip"
     with open("tests/data/test.csv.zip", "rb") as fp:
         requests_mock.get(csv_url, body=fp)
-        import_from_csv(csv_url, db, limit=2)
+        import_from_csv_url(csv_url, db, limit=2)
 
         assert len(db.books) == 2

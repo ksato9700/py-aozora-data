@@ -29,7 +29,7 @@ def test_rdb_book(input_data: dict):
     assert book_0 == book_1
 
 
-def test_rdb_books(adb: dict):
+def test_rdb_books(input_data: dict):
     db = DB()
 
     book_id = input_data["book_id"]

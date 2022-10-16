@@ -1,6 +1,7 @@
 import logging
 from csv import DictReader
 from io import BytesIO, StringIO
+from typing import TextIO
 from zipfile import ZipFile
 
 import requests
@@ -68,20 +69,17 @@ FIELD_NAMES = (
 )
 
 
-def _get_csv(data: bytes) -> DictReader:
-    with ZipFile(BytesIO(data)) as zipfile:
-        csv_data: str = zipfile.read(zipfile.namelist()[0]).decode("utf-8-sig")
-        return DictReader(
-            StringIO(csv_data),
-            fieldnames=FIELD_NAMES,
-        )
-
-
-def import_from_csv(csv_url: str, db, limit: int = 0):
+def import_from_csv_url(csv_url: str, db, limit: int = 0) -> TextIO:
     resp = requests.get(csv_url)
     resp.raise_for_status()
+    with ZipFile(BytesIO(resp.content)) as zipfile:
+        stream = StringIO(zipfile.read(zipfile.namelist()[0]).decode("utf-8-sig"))
+        return import_from_csv(stream, db, limit)
 
-    csv_obj: DictReader = _get_csv(resp.content)
+
+def import_from_csv(csv_stream: TextIO, db, limit: int = 0):
+    csv_obj = DictReader(csv_stream, fieldnames=FIELD_NAMES)
+
     logger.debug(csv_obj)
     next(csv_obj)  # skip the first row
 
