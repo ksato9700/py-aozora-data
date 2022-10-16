@@ -12,7 +12,24 @@ def input_data():
         return json.load(fp)
 
 
+def adb():
+    with open("tests/data/adb.json") as fp:
+        return json.load(fp)
+
+
 def test_rdb_book(input_data: dict):
+    db = DB()
+
+    book_id = input_data["book_id"]
+
+    book_0 = Book(**input_data)
+    db.store_book(book_0.dict())
+    book_1 = db.get_book(book_id)
+
+    assert book_0 == book_1
+
+
+def test_rdb_books(adb: dict):
     db = DB()
 
     book_id = input_data["book_id"]
