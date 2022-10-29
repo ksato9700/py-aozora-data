@@ -12,9 +12,11 @@ def input_data():
         return json.load(fp)
 
 
-def adb():
-    with open("tests/data/adb.json") as fp:
-        return json.load(fp)
+@pytest.fixture()
+def tdb():
+    db = DB("sqlite:///./tests/data/test.db")
+    yield db
+    # del db
 
 
 def test_rdb_book(input_data: dict):
@@ -29,16 +31,21 @@ def test_rdb_book(input_data: dict):
     assert book_0 == book_1
 
 
-def test_rdb_books(input_data: dict):
-    db = DB()
+def test_rdb_books(tdb: DB):
+    books = tdb.get_books()
+    assert len(books) == 100
 
-    book_id = input_data["book_id"]
+    title = "浅草公園"
+    books = tdb.get_books({"title": title})
+    assert len(books) == 1
+    assert title == books[0].title
 
-    book_0 = Book(**input_data)
-    db.store_book(book_0.dict())
-    book_1 = db.get_book(book_id)
-
-    assert book_0 == book_1
+    title = "あいびき"
+    books = tdb.get_books({"title": title})
+    assert len(books) == 2
+    for book in books:
+        book.book_id in (5, 4843)
+        book.title == title
 
 
 def test_rdb_person(input_data: dict):
