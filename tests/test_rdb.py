@@ -44,8 +44,8 @@ def test_rdb_books(tdb: DB):
     books = tdb.get_books({"title": title})
     assert len(books) == 2
     for book in books:
-        book.book_id in (5, 4843)
-        book.title == title
+        assert book.book_id in (5, 4843)
+        assert book.title == title
 
 
 def test_rdb_person(input_data: dict):

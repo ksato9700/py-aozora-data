@@ -17,6 +17,7 @@ DB_URL = os.environ.get("AOZORA_DB_URL", "sqlite:///./aozora.db")
 
 
 def main():
+    """Import data from CSV and PID URLs into the database."""
     db = DB(DB_URL)
     if CSV_URL:
         import_from_csv(CSV_URL, db)

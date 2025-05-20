@@ -3,12 +3,14 @@ import logging
 import requests
 from lxml import html
 
+from ..db.db_rdb import DB
 from ..model import Worker
 
 logger = logging.getLogger(__name__)
 
 
-def import_from_pid(pid_url: str, db):
+def import_from_pid(pid_url: str, db: DB) -> None:
+    """Import workers from the PID page."""
     resp = requests.get(pid_url)
     resp.raise_for_status()
 

@@ -6,6 +6,7 @@ from zipfile import ZipFile
 
 import requests
 
+from ..db.db_rdb import DB
 from ..model import Book, Contributor, Person
 
 logger = logging.getLogger(__name__)
@@ -69,7 +70,8 @@ FIELD_NAMES = (
 )
 
 
-def import_from_csv_url(csv_url: str, db, limit: int = 0) -> TextIO:
+def import_from_csv_url(csv_url: str, db: DB, limit: int = 0) -> TextIO:
+    """Import books, persons, and contributors from a CSV file URL."""
     resp = requests.get(csv_url)
     resp.raise_for_status()
     with ZipFile(BytesIO(resp.content)) as zipfile:
@@ -77,7 +79,8 @@ def import_from_csv_url(csv_url: str, db, limit: int = 0) -> TextIO:
         return import_from_csv(stream, db, limit)
 
 
-def import_from_csv(csv_stream: TextIO, db, limit: int = 0):
+def import_from_csv(csv_stream: TextIO, db: DB, limit: int = 0):
+    """Import books, persons, and contributors from a CSV file."""
     csv_obj = DictReader(csv_stream, fieldnames=FIELD_NAMES)
 
     logger.debug(csv_obj)

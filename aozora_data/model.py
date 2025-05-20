@@ -2,10 +2,13 @@ from datetime import date
 from enum import IntEnum
 from xml.dom import ValidationErr
 
-from pydantic import BaseModel, HttpUrl, validator
+from pydantic import BaseModel, HttpUrl, field_validator
 
 
 class Role(IntEnum):
+    """Enum for roles in the book database."""
+
+    __order__ = "AUTHOR TRANSLATOR EDITOR REVISOR OTHER"
     AUTHOR = 0
     TRANSLATOR = 1
     EDITOR = 2
@@ -14,12 +17,16 @@ class Role(IntEnum):
 
 
 class Contributor(BaseModel):
+    """Model for contributors to a book."""
+
     book_id: int
     person_id: int
     role: Role
 
-    @validator("role", pre=True)
-    def validate_role(val):
+    @field_validator("role", pre=True)
+    @classmethod
+    def validate_role(cls, val: Role | int | str) -> Role:
+        """Validate the role of the contributor."""
         match val:
             case Role(val):
                 return val
@@ -47,6 +54,8 @@ class Contributor(BaseModel):
 
 
 class Book(BaseModel):
+    """Model for books in the database."""
+
     book_id: int
     title: str
     title_yomi: str
@@ -90,8 +99,10 @@ class Book(BaseModel):
     html_charset: str
     html_updated: int
 
-    @validator("copyright", pre=True)
-    def validate_copyright(cls, val) -> bool:
+    @field_validator("copyright", pre=True)
+    @classmethod
+    def validate_copyright(cls, val: bool | str) -> bool:
+        """Validate the copyright status of the book."""
         match val:
             case bool(val):
                 return val
@@ -100,18 +111,24 @@ class Book(BaseModel):
             case _:
                 ValidationErr(f"{val}")
 
-    @validator(
+    @field_validator(
         "text_url", "text_last_modified", "html_url", "html_last_modified", pre=True
     )
-    def validate_str_nullable(cls, val) -> str | None:
+    @classmethod
+    def validate_str_nullable(cls, val: str) -> str | None:
+        """Validate string fields that can be nullable."""
         return None if val == "" else val
 
-    @validator("text_updated", "html_updated", pre=True)
-    def validate_text_updated(cls, val) -> int:
+    @field_validator("text_updated", "html_updated", pre=True)
+    @classmethod
+    def validate_text_updated(cls, val: str) -> int:
+        """Validate the text updated fields."""
         return 0 if val == "" else int(val)
 
 
 class Person(BaseModel):
+    """Model for persons in the database."""
+
     person_id: int
     first_name: str
     last_name: str
@@ -125,8 +142,10 @@ class Person(BaseModel):
     date_of_death: str
     author_copyright: bool
 
-    @validator("author_copyright", pre=True)
-    def validate_copyright(cls, val) -> bool:
+    @field_validator("author_copyright", pre=True)
+    @classmethod
+    def validate_copyright(cls, val: bool | str) -> bool:
+        """Validate the author's copyright status."""
         match val:
             case bool(val):
                 return val
@@ -137,6 +156,8 @@ class Person(BaseModel):
 
 
 class Worker(BaseModel):
+    """Model for workers in the database."""
+
     worker_id: int
     name: str
 

@@ -1,11 +1,13 @@
 import pytest
+import requests_mock
+from requests_mock import Mocker
 
 from aozora_data.importer.csv_importer import import_from_csv, import_from_csv_url
 from aozora_data.model import Book, Contributor, Person, Role
 
 
 class FakeDB:
-    def __init__(self):
+    def __init__(self) -> None:
         self.books: dict[int, Book] = {}
         self.persons: dict[int, Person] = {}
         self.contributors: list[Contributor] = []
@@ -16,7 +18,7 @@ class FakeDB:
     def get_person(self, person_id: int) -> Person | None:
         return self.persons.get(person_id, None)
 
-    def get_contributor(self, book_id, person_id) -> Contributor | None:
+    def get_contributor(self, book_id: str, person_id: str) -> Contributor | None:
         for contributor in self.contributors:
             if contributor.book_id == book_id and contributor.person_id == person_id:
                 return contributor
@@ -39,9 +41,8 @@ class FakeDB:
 def db():
     return FakeDB()
 
-
-def test_import_from_csv(db: FakeDB, requests_mock):
-    with open("tests/data/test.csv", "r") as fp:
+def test_import_from_csv(db: FakeDB):
+    with open("tests/data/test.csv") as fp:
         import_from_csv(fp, db)
 
         assert len(db.books) == 4
@@ -60,11 +61,11 @@ def test_import_from_csv(db: FakeDB, requests_mock):
         assert len(db.persons) == 4
         assert len(db.contributors) == 4
 
-
-def test_import_from_csv_url(db: FakeDB, requests_mock):
+@requests_mock.Mocker()
+def test_import_from_csv_url(db: FakeDB, m: Mocker):
     csv_url = "http://test.csv.zip"
     with open("tests/data/test.csv.zip", "rb") as fp:
-        requests_mock.get(csv_url, body=fp)
+        m.get(csv_url, body=fp)
         import_from_csv_url(csv_url, db)
 
         assert len(db.books) == 4
@@ -84,10 +85,11 @@ def test_import_from_csv_url(db: FakeDB, requests_mock):
         assert len(db.contributors) == 4
 
 
-def test_import_from_csv_url_with_limit(db: FakeDB, requests_mock):
+@requests_mock.Mocker()
+def test_import_from_csv_url_with_limit(db: FakeDB, m: Mocker):
     csv_url = "http://test.csv.zip"
     with open("tests/data/test.csv.zip", "rb") as fp:
-        requests_mock.get(csv_url, body=fp)
+        m.get(csv_url, body=fp)
         import_from_csv_url(csv_url, db, limit=2)
 
         assert len(db.books) == 2
