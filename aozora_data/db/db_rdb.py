@@ -13,6 +13,8 @@ Base = declarative_base()
 
 
 class DbBook(Base):
+    """Database class for Book."""
+
     __tablename__ = "books"
     book_id = Column("book_id", Integer, primary_key=True)
     title = Column("title", String)
@@ -59,6 +61,8 @@ class DbBook(Base):
 
 
 class DbPerson(Base):
+    """Database class for Person."""
+
     __tablename__ = "persons"
     person_id = Column("person_id", Integer, primary_key=True)
     first_name = Column("first_name", String)
@@ -75,6 +79,8 @@ class DbPerson(Base):
 
 
 class DbContributor(Base):
+    """Database class for Contributor."""
+
     __tablename__ = "contributors"
     contributor_id = Column(Integer, primary_key=True)
     book_id = Column(Integer, ForeignKey("books.book_id"))
@@ -83,21 +89,27 @@ class DbContributor(Base):
 
 
 class DbWorker(Base):
+    """Database for Worker."""
+
     __tablename__ = "workers"
     worker_id = Column(Integer, primary_key=True)
     name = Column("name", String)
 
 
 class DB:
-    def __init__(self, engine: str = "sqlite+pysqlite:///:memory:"):
+    """Database class for Aozora Data."""
+
+    def __init__(self, engine: str = "sqlite+pysqlite:///:memory:") -> None:
+        """Initialize the database connection."""
         engine = create_engine(engine, echo=False, future=True)
         Base.metadata.create_all(bind=engine)
         self.db = sessionmaker(autocommit=False, autoflush=False, bind=engine)()
 
-    def __del__(self):
+    def __del__(self) -> None:
+        """Close the database connection."""
         self.db.close()
 
-    def _get_books(self, filter, limit=100) -> DbBook:
+    def _get_books(self, filter: dict[str, str], limit: int = 100) -> DbBook:
         query = self.db.query(DbBook)
         for key, value in filter.items():
             query = query.filter(getattr(DbBook, key) == value)
@@ -112,19 +124,21 @@ class DB:
     def _get_contributor(self, book_id: int, person_id: int) -> DbContributor:
         return (
             self.db.query(DbContributor)
-            .filter(
-                DbContributor.book_id == book_id, DbContributor.person_id == person_id
-            )
+            .filter(DbContributor.book_id == book_id, DbContributor.person_id == person_id)
             .first()
         )
 
     def _get_worker(self, worker_id: int) -> DbWorker:
         return self.db.query(DbWorker).filter(DbWorker.worker_id == worker_id).first()
 
-    def get_books(self, query: dict = {}) -> list[Book]:
+    def get_books(self, query: dict | None = None) -> list[Book]:
+        """Get books from the database."""
+        if query is None:
+            query = {}
         return [Book(**(book.__dict__)) for book in self._get_books(query)]
 
     def get_book(self, book_id: int) -> Book | None:
+        """Get a book from the database."""
         book = self._get_book(book_id)
         if book:
             book_dict = book.__dict__
@@ -133,6 +147,7 @@ class DB:
             return None
 
     def get_person(self, person_id: int) -> Person | None:
+        """Get a person from the database."""
         person = self._get_person(person_id)
         if person:
             person_dict = person.__dict__
@@ -141,6 +156,7 @@ class DB:
             return None
 
     def get_contributor(self, book_id: int, person_id: int) -> Contributor | None:
+        """Get a contributor from the database."""
         contributor = self._get_contributor(book_id, person_id)
         if contributor:
             contributor_dict = contributor.__dict__
@@ -149,6 +165,7 @@ class DB:
             return None
 
     def get_worker(self, worker_id: int) -> Worker | None:
+        """Get a worker from the database."""
         worker = self._get_worker(worker_id)
         if worker:
             worker_dict = worker.__dict__
@@ -157,6 +174,7 @@ class DB:
             return None
 
     def store_books(self, data_list: list[dict]):
+        """Store a list of books in the database."""
         for data in data_list:
             book = self._get_book(data["book_id"])
 
@@ -165,6 +183,7 @@ class DB:
         self.db.commit()
 
     def store_book(self, data: dict):
+        """Store a book in the database."""
         book = self._get_book(data["book_id"])
 
         if book:
@@ -176,11 +195,8 @@ class DB:
             self.db.commit()
 
     def store_person(self, data: dict):
-        person = (
-            self.db.query(DbPerson)
-            .filter(DbPerson.person_id == data["person_id"])
-            .first()
-        )
+        """Store a person in the database."""
+        person = self.db.query(DbPerson).filter(DbPerson.person_id == data["person_id"]).first()
         if person:
             pass
         else:
@@ -188,6 +204,7 @@ class DB:
             self.db.commit()
 
     def store_contributor(self, data: dict):
+        """Store a contributor in the database."""
         contributor = (
             self.db.query(DbContributor)
             .filter(
@@ -203,11 +220,8 @@ class DB:
             self.db.commit()
 
     def store_worker(self, data: dict):
-        worker = (
-            self.db.query(DbWorker)
-            .filter(DbWorker.worker_id == data["worker_id"])
-            .first()
-        )
+        """Store a worker in the database."""
+        worker = self.db.query(DbWorker).filter(DbWorker.worker_id == data["worker_id"]).first()
         if worker:
             pass
         else:

@@ -111,9 +111,7 @@ class Book(BaseModel):
             case _:
                 ValidationErr(f"{val}")
 
-    @field_validator(
-        "text_url", "text_last_modified", "html_url", "html_last_modified", pre=True
-    )
+    @field_validator("text_url", "text_last_modified", "html_url", "html_last_modified", pre=True)
     @classmethod
     def validate_str_nullable(cls, val: str) -> str | None:
         """Validate string fields that can be nullable."""

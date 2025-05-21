@@ -36,19 +36,13 @@ def test_contributor():
     with pytest.raises(ValidationError) as error:
         Contributor(**contributor_data)
 
-    assert (
-        str(error.value)
-        == "1 validation error for Contributor\nrole\n  画家 (type=value_error)"
-    )
+    assert str(error.value) == "1 validation error for Contributor\nrole\n  画家 (type=value_error)"
 
     contributor_data = {"book_id": 30000, "person_id": 40000, "role": 10}
     with pytest.raises(ValidationError) as error:
         Contributor(**contributor_data)
 
-    assert (
-        str(error.value)
-        == "1 validation error for Contributor\nrole\n  10 (type=value_error)"
-    )
+    assert str(error.value) == "1 validation error for Contributor\nrole\n  10 (type=value_error)"
 
 
 @pytest.fixture()

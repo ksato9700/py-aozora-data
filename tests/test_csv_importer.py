@@ -41,6 +41,7 @@ class FakeDB:
 def db():
     return FakeDB()
 
+
 def test_import_from_csv(db: FakeDB):
     with open("tests/data/test.csv") as fp:
         import_from_csv(fp, db)
@@ -60,6 +61,7 @@ def test_import_from_csv(db: FakeDB):
 
         assert len(db.persons) == 4
         assert len(db.contributors) == 4
+
 
 @requests_mock.Mocker()
 def test_import_from_csv_url(db: FakeDB, m: Mocker):
