@@ -1,20 +1,28 @@
 # py-aozora-data
 
-Access library and data model for the [Aozora Bunko](https://www.aozora.gr.jp/) database.
+**Aozora Bunko Data Pipeline to Firestore**
 
-This project provides Pydantic models for Aozora Bunko entities (Books, Persons, Workers) and tools to import the official Aozora Bunko data (CSV) into a relational database using SQLAlchemy.
+This project provides a data pipeline to download the official [Aozora Bunko](https://www.aozora.gr.jp/) book list (CSV) and import it into Google Cloud Firestore. It supports efficient differential updates by comparing existing metadata.
+
+> [!IMPORTANT]
+> This repository has been refactored. Support for SQL (SQLAlchemy) and Pydantic models has been removed in favor of direct Firestore integration.
 
 ## Features
 
-- **Data Models**: Strongly typed Pydantic models for `Book`, `Person`, `Worker`, and `Contributor`.
-- **Database Support**: Abstracted database access layer using SQLAlchemy.
-- **Data Importer**: Utilities to download and import:
-  - The comprehensive book list CSV (`list_person_all_extended_utf8.zip`).
-  - Worker ID lists.
+- **Automated Import**: Downloads `list_person_all_extended_utf8.zip` from Aozora Bunko.
+- **Firestore Integration**: Writes Books, Persons, and Contributors to Firestore collections (`books`, `persons`, `contributors`).
+- **Differential Updates**: Minimizes writes by comparing `last_modified` dates and content hashes with existing Firestore documents.
+- **Batch Processing**: Uses Firestore batch writes for performance.
+
+## Prerequisites
+
+- Python 3.13 or higher
+- Google Cloud Project with Firestore enabled
+- Google Application Default Credentials (ADC) configured
 
 ## Installation
 
-This project requires Python 3.13 or higher.
+This project uses `uv` for dependency management.
 
 ```bash
 # Clone the repository
@@ -22,22 +30,20 @@ git clone https://github.com/ksato9700/py-aozora-data.git
 cd py-aozora-data
 
 # Install dependencies
-pip install .
-
-# Or using uv (recommended for development)
 uv sync
 ```
 
 ## Usage
 
-### Importing Data
+### Running the Importer
 
-To populate your database with the latest Aozora Bunko data, run the importer module. This will download the latest indices from Aozora Bunko and store them in your local database.
-
-By default, it creates an SQLite database `aozora.db` in the current directory.
+Set your Google Cloud Project ID and run the importer module.
 
 ```bash
-python -m aozora_data.importer.main
+export GOOGLE_CLOUD_PROJECT=your-project-id
+
+# Run the importer
+uv run python -m aozora_data.importer.main
 ```
 
 ### Configuration
@@ -46,42 +52,17 @@ You can configure the importer behavior using environment variables:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `AOZORA_DB_URL` | Database connection URL (SQLAlchemy format) | `sqlite:///./aozora.db` |
+| `GOOGLE_CLOUD_PROJECT` | Google Cloud Project ID (Required) | - |
 | `AOZORA_CSV_URL` | URL to the Aozora Bunko CSV zip file | `https://www.aozora.gr.jp/index_pages/list_person_all_extended_utf8.zip` |
-| `AOZORA_PID_URL` | URL to the Worker ID list | `http://reception.aozora.gr.jp/widlist.php?page=1&pagerow=-1` |
-
-### Using as a Library
-
-You can use the provided `DB` class to query the database using Pydantic models.
-
-```python
-from aozora_data.db.db_rdb import DB
-
-# Initialize DB connection (point to your imported database)
-db = DB("sqlite:///aozora.db")
-
-# Fetch a book by ID
-book = db.get_book(1)
-if book:
-    print(f"Title: {book.title}")
-    print(f"Release Date: {book.release_date}")
-
-# Query books with filters
-books = db.get_books({"title": "こころ"})
-for b in books:
-   print(f"{b.book_id}: {b.title}")
-```
 
 ## Development
-
-This project uses `uv` for dependency management and `pytest` for testing.
 
 ```bash
 # Install development dependencies
 uv sync --extra dev
 
 # Run tests
-pytest
+uv run pytest
 ```
 
 ## License
