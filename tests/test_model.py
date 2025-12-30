@@ -2,7 +2,7 @@ import json
 from datetime import date
 
 import pytest
-from pydantic import ValidationError
+from pydantic import HttpUrl, ValidationError
 
 from aozora_data.model import Book, Contributor, Person, Role, Worker
 
@@ -23,7 +23,7 @@ def test_contributor():
     # reimport case
     contributor_data = {"book_id": 30000, "person_id": 40000, "role": "著者"}
     contributor_0 = Contributor(**contributor_data)
-    contributor_1 = Contributor(**(contributor_0.dict()))
+    contributor_1 = Contributor(**(contributor_0.model_dump()))
     assert contributor_0 == contributor_1
 
     # initialize by integer
@@ -36,13 +36,17 @@ def test_contributor():
     with pytest.raises(ValidationError) as error:
         Contributor(**contributor_data)
 
-    assert str(error.value) == "1 validation error for Contributor\nrole\n  画家 (type=value_error)"
+    assert "1 validation error for Contributor" in str(error.value)
+    assert "type=value_error" in str(error.value)
+    assert "画家" in str(error.value)
 
     contributor_data = {"book_id": 30000, "person_id": 40000, "role": 10}
     with pytest.raises(ValidationError) as error:
         Contributor(**contributor_data)
 
-    assert str(error.value) == "1 validation error for Contributor\nrole\n  10 (type=value_error)"
+    assert "1 validation error for Contributor" in str(error.value)
+    assert "type=value_error" in str(error.value)
+    assert "10" in str(error.value)
 
 
 @pytest.fixture()
@@ -119,7 +123,10 @@ def test_model(input_data: dict):
     person_bool_keys = ("author_copyright",)
 
     for key in book_str_keys:
-        assert getattr(book, key) == input_data[key]
+        val = getattr(book, key)
+        if isinstance(val, HttpUrl):
+            val = str(val)
+        assert val == input_data[key]
 
     for key in book_int_keys:
         assert getattr(book, key) == int(input_data[key])
@@ -152,10 +159,10 @@ def test_model(input_data: dict):
 
     # reimport case
 
-    book2 = Book(**book.dict())
+    book2 = Book(**book.model_dump())
     assert book == book2
 
-    person2 = Person(**person.dict())
+    person2 = Person(**person.model_dump())
     assert person == person2
 
 
@@ -165,5 +172,5 @@ def test_worker():
     assert worker.worker_id == data["worker_id"]
     assert worker.name == data["name"]
 
-    worker2 = Worker(**worker.dict())
+    worker2 = Worker(**worker.model_dump())
     assert worker == worker2

@@ -90,9 +90,9 @@ def import_from_csv(csv_stream: TextIO, db: DB, limit: int = 0):
         if limit > 0 and idx >= limit:
             break
         try:
-            db.store_book(Book(**row).dict())
-            db.store_person(Person(**row).dict())
-            db.store_contributor(Contributor(**row).dict())
+            db.store_book(Book(**row).model_dump())
+            db.store_person(Person(**row).model_dump())
+            db.store_contributor(Contributor(**row).model_dump())
         except Exception as e:
             print(f"ERROR: {e}")
             print(row)

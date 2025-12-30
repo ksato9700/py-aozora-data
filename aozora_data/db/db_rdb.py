@@ -4,6 +4,8 @@ from sqlalchemy import Boolean, Column, Date, ForeignKey, Integer, String, creat
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+from pydantic import HttpUrl
+
 from ..model import Book, Contributor, Person, Worker
 
 logger = logging.getLogger(__name__)
@@ -99,15 +101,25 @@ class DbWorker(Base):
 class DB:
     """Database class for Aozora Data."""
 
-    def __init__(self, engine: str = "sqlite+pysqlite:///:memory:") -> None:
+    def __init__(self, engine_url: str = "sqlite+pysqlite:///:memory:") -> None:
         """Initialize the database connection."""
-        engine = create_engine(engine, echo=False, future=True)
+        engine = create_engine(engine_url, echo=False, future=True)
         Base.metadata.create_all(bind=engine)
         self.db = sessionmaker(autocommit=False, autoflush=False, bind=engine)()
 
     def __del__(self) -> None:
         """Close the database connection."""
         self.db.close()
+
+    def _sanitize_data(self, data: dict) -> dict:
+        """Sanitize data for database storage."""
+        new_data = {}
+        for key, value in data.items():
+            if isinstance(value, HttpUrl):
+                new_data[key] = str(value)
+            else:
+                new_data[key] = value
+        return new_data
 
     def _get_books(self, filter: dict[str, str], limit: int = 100) -> DbBook:
         query = self.db.query(DbBook)
@@ -179,7 +191,7 @@ class DB:
             book = self._get_book(data["book_id"])
 
             if not book:
-                self.db.add(DbBook(**data))
+                self.db.add(DbBook(**self._sanitize_data(data)))
         self.db.commit()
 
     def store_book(self, data: dict):
@@ -191,7 +203,7 @@ class DB:
             # stmt = update(Book).where(Book.book_id == data["book_id"]).values(**data)
             # self.db.execute(stmt)
         else:
-            self.db.add(DbBook(**data))
+            self.db.add(DbBook(**self._sanitize_data(data)))
             self.db.commit()
 
     def store_person(self, data: dict):

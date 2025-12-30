@@ -23,7 +23,7 @@ class Contributor(BaseModel):
     person_id: int
     role: Role
 
-    @field_validator("role", pre=True)
+    @field_validator("role", mode="before")
     @classmethod
     def validate_role(cls, val: Role | int | str) -> Role:
         """Validate the role of the contributor."""
@@ -99,7 +99,7 @@ class Book(BaseModel):
     html_charset: str
     html_updated: int
 
-    @field_validator("copyright", pre=True)
+    @field_validator("copyright", mode="before")
     @classmethod
     def validate_copyright(cls, val: bool | str) -> bool:
         """Validate the copyright status of the book."""
@@ -111,13 +111,13 @@ class Book(BaseModel):
             case _:
                 ValidationErr(f"{val}")
 
-    @field_validator("text_url", "text_last_modified", "html_url", "html_last_modified", pre=True)
+    @field_validator("text_url", "text_last_modified", "html_url", "html_last_modified", mode="before")
     @classmethod
     def validate_str_nullable(cls, val: str) -> str | None:
         """Validate string fields that can be nullable."""
         return None if val == "" else val
 
-    @field_validator("text_updated", "html_updated", pre=True)
+    @field_validator("text_updated", "html_updated", mode="before")
     @classmethod
     def validate_text_updated(cls, val: str) -> int:
         """Validate the text updated fields."""
@@ -140,7 +140,7 @@ class Person(BaseModel):
     date_of_death: str
     author_copyright: bool
 
-    @field_validator("author_copyright", pre=True)
+    @field_validator("author_copyright", mode="before")
     @classmethod
     def validate_copyright(cls, val: bool | str) -> bool:
         """Validate the author's copyright status."""

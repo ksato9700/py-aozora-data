@@ -25,7 +25,7 @@ def test_rdb_book(input_data: dict):
     book_id = input_data["book_id"]
 
     book_0 = Book(**input_data)
-    db.store_book(book_0.dict())
+    db.store_book(book_0.model_dump())
     book_1 = db.get_book(book_id)
 
     assert book_0 == book_1
@@ -54,7 +54,7 @@ def test_rdb_person(input_data: dict):
     person_id = input_data["person_id"]
 
     person_0 = Person(**input_data)
-    db.store_person(person_0.dict())
+    db.store_person(person_0.model_dump())
     person_1 = db.get_person(person_id)
 
     assert person_0 == person_1
@@ -67,7 +67,7 @@ def test_rdb_contributor(input_data: dict):
     person_id = input_data["person_id"]
 
     contributor_0 = Contributor(**input_data)
-    db.store_contributor(contributor_0.dict())
+    db.store_contributor(contributor_0.model_dump())
     contributor_1 = db.get_contributor(book_id, person_id)
 
     assert contributor_0 == contributor_1
@@ -80,7 +80,7 @@ def test_rdb_worker():
     worker_id = input_data["worker_id"]
 
     worker_0 = Worker(**input_data)
-    db.store_worker(worker_0.dict())
+    db.store_worker(worker_0.model_dump())
     worker_1 = db.get_worker(worker_id)
 
     assert worker_0 == worker_1
