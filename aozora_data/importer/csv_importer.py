@@ -1,8 +1,7 @@
 import logging
-import datetime
 from csv import DictReader
-from io import BytesIO, StringIO
-from typing import TextIO, Any, Dict, Set
+from io import BytesIO
+from typing import TextIO
 
 import requests
 
@@ -88,11 +87,16 @@ def _parse_role(val: str) -> int:
     # Map Japanese roles to IDs manually if needed, or just store the string?
     # Original model.py had Mapping.
     # AUTHOR = 0, TRANSLATOR = 1, EDITOR = 2, REVISOR = 3, OTHER = 4
-    if val == "著者": return 0
-    if val == "翻訳者": return 1
-    if val == "編者": return 2
-    if val == "校訂者": return 3
-    if val == "その他": return 4
+    if val == "著者":
+        return 0
+    if val == "翻訳者":
+        return 1
+    if val == "編者":
+        return 2
+    if val == "校訂者":
+        return 3
+    if val == "その他":
+        return 4
     return 4
 
 
@@ -103,12 +107,14 @@ def import_from_csv_url(csv_url: str, db: AozoraFirestore, limit: int = 0) -> No
     with BytesIO(resp.content) as b_stream:
         # Handling zip files in memory
         from zipfile import ZipFile
+
         with ZipFile(b_stream) as zipfile:
             # Assuming there is only one file in the zip or we take the first one
             filename = zipfile.namelist()[0]
             with zipfile.open(filename) as z_f:
                 # TextIOWrapper to decode
                 import io
+
                 stream = io.TextIOWrapper(z_f, encoding="utf-8-sig")
                 import_from_csv(stream, db, limit)
 
@@ -127,7 +133,7 @@ def import_from_csv(csv_stream: TextIO, db: AozoraFirestore, limit: int = 0):
     # So we must manually skip the header row.
 
     # Optimization: Cache seen persons in this run to avoid redundant writes/checks for every book.
-    seen_persons: Set[str] = set()
+    seen_persons: set[str] = set()
 
     # Pre-fetch existing data in Firestore
     db.prefetch_metadata()
@@ -204,7 +210,7 @@ def import_from_csv(csv_stream: TextIO, db: AozoraFirestore, limit: int = 0):
                 "id": contributor_id,
                 "book_id": _parse_int(book_id),
                 "person_id": _parse_int(person_id),
-                "role": role_id
+                "role": role_id,
             }
             db.upsert_contributor(contributor_id, contributor_data)
 

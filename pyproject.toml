@@ -79,3 +79,8 @@ plugins = []
 [build-system]
 requires = ["setuptools>=61.0"] # setuptools is a common build backend with uv
 build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "types-requests>=2.32.4.20250913",
+]

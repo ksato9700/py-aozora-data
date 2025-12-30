@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Set
+from typing import Any
 
 from google.cloud import firestore  # type: ignore
 
@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class AozoraFirestore:
     """Firestore Access Object for Aozora Bunko data."""
 
-    def __init__(self, project_id: str | None = None):
+    def __init__(self, project_id: str | None = None) -> None:
         """Initialize Firestore client and local caches."""
         self.db = firestore.Client(project=project_id)
         self.batch = self.db.batch()
@@ -21,9 +21,9 @@ class AozoraFirestore:
         # but storing 'last_modified' from the CSV is a good proxy if provided.
         # However, checking deeper equality is safer.
         # Let's verify 'last_modified' field availability.
-        self.existing_books: Dict[str, Any] = {}
-        self.existing_persons: Dict[str, Any] = {}
-        self.existing_contributors: Set[str] = set() # using "book_id-person_id-role" as key
+        self.existing_books: dict[str, Any] = {}
+        self.existing_persons: dict[str, Any] = {}
+        self.existing_contributors: set[str] = set()  # using "book_id-person_id-role" as key
 
     def prefetch_metadata(self):
         """Fetch existing document IDs and relevant metadata to minimize writes."""
@@ -31,7 +31,11 @@ class AozoraFirestore:
 
         # Books
         # We assume 'last_modified' field in the document matches the CSV's last_modified
-        docs = self.db.collection("books").select(["last_modified", "text_updated", "html_updated"]).stream()
+        docs = (
+            self.db.collection("books")
+            .select(["last_modified", "text_updated", "html_updated"])
+            .stream()
+        )
         for doc in docs:
             self.existing_books[doc.id] = doc.to_dict()
 
@@ -41,7 +45,7 @@ class AozoraFirestore:
         # Aozora persons are mutable (death date etc).
         # We'll just fetch them all? It's about 1-2k persons? No, probably more.
         # Let's fetch IDs for now.
-        docs = self.db.collection("persons").select([]).stream() # ID only
+        docs = self.db.collection("persons").select([]).stream()  # ID only
         for doc in docs:
             self.existing_persons[doc.id] = True
 
@@ -50,16 +54,18 @@ class AozoraFirestore:
         for doc in docs:
             self.existing_contributors.add(doc.id)
 
-        logger.info(f"Prefetched: {len(self.existing_books)} books, {len(self.existing_persons)} persons.")
+        logger.info(
+            f"Prefetched: {len(self.existing_books)} books, {len(self.existing_persons)} persons."
+        )
 
-    def _flush_batch_if_needed(self, force: bool = False):
+    def _flush_batch_if_needed(self, force: bool = False) -> None:
         if self.batch_count >= self.BATCH_LIMIT or (force and self.batch_count > 0):
             logger.info(f"Committing batch of {self.batch_count} operations...")
             self.batch.commit()
             self.batch = self.db.batch()
             self.batch_count = 0
 
-    def upsert_book(self, book_id: str, data: Dict[str, Any]):
+    def upsert_book(self, book_id: str, data: dict[str, Any]):
         """Upsert a book if it has changed."""
         # Check diff
         # Simplified check: if book exists and last_modified matches, skip.
@@ -69,9 +75,11 @@ class AozoraFirestore:
         if book_id in self.existing_books:
             existing = self.existing_books[book_id]
             # If relevant fields match, skip
-            if (existing.get("last_modified") == data.get("last_modified") and
-                existing.get("text_updated") == data.get("text_updated") and
-                existing.get("html_updated") == data.get("html_updated")):
+            if (
+                existing.get("last_modified") == data.get("last_modified")
+                and existing.get("text_updated") == data.get("text_updated")
+                and existing.get("html_updated") == data.get("html_updated")
+            ):
                 should_update = False
 
         if should_update:
@@ -80,7 +88,7 @@ class AozoraFirestore:
             self.batch_count += 1
             self._flush_batch_if_needed()
 
-    def upsert_person(self, person_id: str, data: Dict[str, Any]):
+    def upsert_person(self, person_id: str, data: dict[str, Any]):
         """Upsert a person."""
         # For persons, since we don't have a clear versioning field in the CSV row easily available
         # without looking at the schema again (Step 12: just name, dates),
@@ -92,7 +100,8 @@ class AozoraFirestore:
         # NOTE: This method will be called multiple times for the same person in one import run.
         # We must avoid adding to batch multiple times.
 
-        # Since we are iterating streams, we don't store "what we pending wrote" in 'existing_persons'.
+        # Since we are iterating streams, we don't store "what we pending wrote"
+        # in 'existing_persons'.
         # We should maybe track "processed_ids" in this run.
 
         # But for now, let's just write if not in existing_persons (simple "new check").
@@ -103,14 +112,15 @@ class AozoraFirestore:
         # But user requested "only changed places".
         # Let's skip if we already sent this person ID in this BATCH or this RUN?
         # Implementing a "seen_in_run" cache.
-        pass # Logic handled in next block to keep this pure.
+        pass  # Logic handled in next block to keep this pure.
 
         ref = self.db.collection("persons").document(person_id)
         self.batch.set(ref, data, merge=True)
         self.batch_count += 1
         self._flush_batch_if_needed()
 
-    def upsert_contributor(self, contributor_id: str, data: Dict[str, Any]):
+    def upsert_contributor(self, contributor_id: str, data: dict[str, Any]) -> None:
+        """Upsert a contributor."""
         if contributor_id not in self.existing_contributors:
             ref = self.db.collection("contributors").document(contributor_id)
             self.batch.set(ref, data)
