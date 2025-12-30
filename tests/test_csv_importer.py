@@ -12,17 +12,18 @@ class FakeFirestore(AozoraFirestore):
         self.batch_count = 0
         self.BATCH_LIMIT = 450
 
-        self.existing_books = {}
-        self.existing_persons = {}
-        self.existing_contributors = set()
+        self.watermark: str | None = None
 
         # Memory checks for test assertions
         self.stored_books: dict[str, dict] = {}
         self.stored_persons: dict[str, dict] = {}
         self.stored_contributors: dict[str, dict] = {}  # Map ID -> Data
 
-    def prefetch_metadata(self):
-        pass
+    def get_watermark(self) -> str | None:
+        return self.watermark
+
+    def save_watermark(self, date_str: str) -> None:
+        self.watermark = date_str
 
     def _flush_batch_if_needed(self, force: bool = False) -> None:
         pass
@@ -35,7 +36,6 @@ class FakeFirestore(AozoraFirestore):
 
     def upsert_contributor(self, contributor_id: str, data: dict):
         self.stored_contributors[contributor_id] = data
-        self.existing_contributors.add(contributor_id)
 
     def commit(self):
         pass

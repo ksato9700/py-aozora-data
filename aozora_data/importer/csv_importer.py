@@ -132,11 +132,9 @@ def import_from_csv(csv_stream: TextIO, db: AozoraFirestore, limit: int = 0):
     # If fieldnames IS provided, the first row is read as data.
     # So we must manually skip the header row.
 
-    # Optimization: Cache seen persons in this run to avoid redundant writes/checks for every book.
-    seen_persons: set[str] = set()
-
-    # Pre-fetch existing data in Firestore
-    db.prefetch_metadata()
+    # Watermark logic
+    watermark = db.get_watermark()
+    max_last_modified = watermark
 
     count = 0
     for row in csv_obj:
@@ -147,6 +145,16 @@ def import_from_csv(csv_stream: TextIO, db: AozoraFirestore, limit: int = 0):
             # Parse IDs
             book_id = row["book_id"]
             person_id = row["person_id"]
+
+            row_last_modified = _parse_date(row["last_modified"])
+
+            # Update max_last_modified if current row is newer
+            if row_last_modified and (not max_last_modified or row_last_modified > max_last_modified):
+                max_last_modified = row_last_modified
+
+            # Filter by Watermark
+            if watermark and row_last_modified and row_last_modified <= watermark:
+                continue
 
             # Prepare Book Data
             # (Select fields belonging to Book)
@@ -185,23 +193,21 @@ def import_from_csv(csv_stream: TextIO, db: AozoraFirestore, limit: int = 0):
             db.upsert_book(book_id, book_data)
 
             # Prepare Person Data
-            if person_id not in seen_persons:
-                person_data = {
-                    "person_id": _parse_int(person_id),
-                    "first_name": row["first_name"],
-                    "last_name": row["last_name"],
-                    "last_name_yomi": row["last_name_yomi"],
-                    "first_name_yomi": row["first_name_yomi"],
-                    "last_name_sort": row["last_name_sort"],
-                    "first_name_sort": row["first_name_sort"],
-                    "last_name_roman": row["last_name_roman"],
-                    "first_name_roman": row["first_name_roman"],
-                    "date_of_birth": row["date_of_birth"],
-                    "date_of_death": row["date_of_death"],
-                    "author_copyright": _parse_bool(row["author_copyright"]),
-                }
-                db.upsert_person(person_id, person_data)
-                seen_persons.add(person_id)
+            person_data = {
+                "person_id": _parse_int(person_id),
+                "first_name": row["first_name"],
+                "last_name": row["last_name"],
+                "last_name_yomi": row["last_name_yomi"],
+                "first_name_yomi": row["first_name_yomi"],
+                "last_name_sort": row["last_name_sort"],
+                "first_name_sort": row["first_name_sort"],
+                "last_name_roman": row["last_name_roman"],
+                "first_name_roman": row["first_name_roman"],
+                "date_of_birth": row["date_of_birth"],
+                "date_of_death": row["date_of_death"],
+                "author_copyright": _parse_bool(row["author_copyright"]),
+            }
+            db.upsert_person(person_id, person_data)
 
             # Prepare Contributor Data
             role_id = _parse_role(row["role"])
@@ -222,4 +228,9 @@ def import_from_csv(csv_stream: TextIO, db: AozoraFirestore, limit: int = 0):
             raise
 
     # Commit any remaining batch
+    # Commit any remaining batch
     db.commit()
+
+    # Save new watermark
+    if max_last_modified:
+        db.save_watermark(max_last_modified)
