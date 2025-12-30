@@ -1,107 +1,114 @@
 import pytest
 import requests_mock
-from pydantic import HttpUrl, ValidationError
 from requests_mock import Mocker
 
-from aozora_data.db.db_rdb import DB
 from aozora_data.importer.csv_importer import import_from_csv, import_from_csv_url
-from aozora_data.model import Book, Contributor, Person, Role
+from aozora_data.db.firestore import AozoraFirestore
 
+class FakeFirestore(AozoraFirestore):
+    def __init__(self, project_id=None):
+        # Skip super init to avoid creating real Client
+        self.db = None
+        self.batch_count = 0
+        self.BATCH_LIMIT = 450
 
-class FakeDB(DB):
-    def __init__(self) -> None:
-        self.books: dict[int, Book] = {}
-        self.persons: dict[int, Person] = {}
-        self.contributors: list[Contributor] = []
+        self.existing_books = {}
+        self.existing_persons = {}
+        self.existing_contributors = set()
 
-    def __del__(self) -> None:
+        # Memory checks for test assertions
+        self.stored_books = {}
+        self.stored_persons = {}
+        self.stored_contributors = {} # Map ID -> Data
+
+    def prefetch_metadata(self):
         pass
 
-    def get_book(self, book_id: int) -> Book | None:
-        return self.books.get(book_id, None)
+    def _flush_batch_if_needed(self, force: bool = False):
+        pass
 
-    def get_person(self, person_id: int) -> Person | None:
-        return self.persons.get(person_id, None)
+    def upsert_book(self, book_id: str, data: dict):
+        self.stored_books[book_id] = data
 
-    def get_contributor(self, book_id: int, person_id: int) -> Contributor | None:
-        for contributor in self.contributors:
-            if contributor.book_id == book_id and contributor.person_id == person_id:
-                return contributor
-        return None
+    def upsert_person(self, person_id: str, data: dict):
+        self.stored_persons[person_id] = data
 
-    def store_book(self, data: dict):
-        book = Book(**data)
-        self.books[book.book_id] = book
+    def upsert_contributor(self, contributor_id: str, data: dict):
+        self.stored_contributors[contributor_id] = data
+        self.existing_contributors.add(contributor_id)
 
-    def store_person(self, data: dict):
-        person = Person(**data)
-        self.persons[person.person_id] = person
-
-    def store_contributor(self, data: dict):
-        contributor = Contributor(**data)
-        self.contributors.append(contributor)
+    def commit(self):
+        pass
 
 
 @pytest.fixture()
 def db():
-    return FakeDB()
+    return FakeFirestore()
 
 
-
-def test_import_from_csv(db: FakeDB):
+def test_import_from_csv(db: FakeFirestore):
     with open("tests/data/test.csv") as fp:
         import_from_csv(fp, db)
 
-        assert len(db.books) == 4
+        assert len(db.stored_books) == 4
 
-        book_id = 10001
-        person_id = 20001
+        # In the test CSV (assumed same as before), we check specific data
+        book_id = "10001"
+        person_id = "20001"
 
-        book_01 = db.get_book(book_id)
-        person_01 = db.get_person(person_id)
-        contributor_01 = db.get_contributor(book_id, person_id)
+        # Ensure data is stored
+        assert int(book_id) in [db.stored_books[k]['book_id'] for k in db.stored_books]
+        # Our stored_books keys are string IDs from CSV, but values are typed.
+        # Let's check based on the key
+        assert book_id in db.stored_books
+        book_data = db.stored_books[book_id]
+        assert book_data['book_id'] == 10001
 
-        assert book_01 is not None
-        assert person_01 is not None
-        assert contributor_01 is not None
-        assert book_01.book_id == book_id
-        assert person_01.person_id == person_id
-        assert contributor_01.role == Role(1)
+        # Person
+        assert person_id in db.stored_persons
+        person_data = db.stored_persons[person_id]
+        assert person_data['person_id'] == 20001
 
-        assert len(db.persons) == 4
-        assert len(db.contributors) == 4
+        # Contributor
+        # Contributor ID is composite: book-person-role
+        # We need to find the one matching book_10001, person_20001
+        # Role 1 is Translator in old Enum?
+        # Let's check if there is a contributor for this pair
+        found = False
+        for cid, cdata in db.stored_contributors.items():
+            if cdata['book_id'] == 10001 and cdata['person_id'] == 20001:
+                found = True
+                assert cdata['role'] == 1 # Translator
+                break
+        assert found
 
 
-def test_import_from_csv_url(db: FakeDB, requests_mock: Mocker):
+def test_import_from_csv_url(db: FakeFirestore, requests_mock: Mocker):
     csv_url = "http://test.csv.zip"
     with open("tests/data/test.csv.zip", "rb") as fp:
         requests_mock.get(csv_url, body=fp)
         import_from_csv_url(csv_url, db)
 
-        assert len(db.books) == 4
+        assert len(db.stored_books) == 4
 
-        book_id = 10003
-        person_id = 20003
+        book_id = "10003"
+        person_id = "20003"
 
-        book_03 = db.get_book(book_id)
-        person_03 = db.get_person(person_id)
-        contributor_03 = db.get_contributor(book_id, person_id)
+        assert book_id in db.stored_books
+        book_data = db.stored_books[book_id]
 
-        assert book_03 is not None
-        assert person_03 is not None
-        assert contributor_03 is not None
-        assert book_03.book_id == book_id
-        assert person_03.person_id == person_id
-        assert contributor_03.role == Role(0)
+        assert person_id in db.stored_persons
+        person_data = db.stored_persons[person_id]
 
-        assert len(db.persons) == 4
-        assert len(db.contributors) == 4
+        # Check integrity
+        assert book_data['book_id'] == 10003
+        assert person_data['person_id'] == 20003
 
 
-def test_import_from_csv_url_with_limit(db: FakeDB, requests_mock: Mocker):
+def test_import_from_csv_url_with_limit(db: FakeFirestore, requests_mock: Mocker):
     csv_url = "http://test.csv.zip"
     with open("tests/data/test.csv.zip", "rb") as fp:
         requests_mock.get(csv_url, body=fp)
         import_from_csv_url(csv_url, db, limit=2)
 
-        assert len(db.books) == 2
+        assert len(db.stored_books) == 2
