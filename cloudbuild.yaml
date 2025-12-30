@@ -1,0 +1,39 @@
+steps:
+  # 1. Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/aozora/importer:$COMMIT_SHA', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/aozora/importer:latest', '.']
+
+  # 2. Push the container image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_REGION}-docker.pkg.dev/$PROJECT_ID/aozora/importer:$COMMIT_SHA']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_REGION}-docker.pkg.dev/$PROJECT_ID/aozora/importer:latest']
+
+  # 3. Update the Cloud Run Job
+  # Note: The Job must be created once manually or via terraform before this step works for 'update',
+  # or use 'replace' / 'deploy' (though 'jobs deploy' is preview or 'jobs create' fails if exists).
+  # 'gcloud run jobs update' is safe if exists.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'jobs'
+      - 'update'
+      - 'aozora-importer'
+      - '--image'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/aozora/importer:$COMMIT_SHA'
+      - '--region'
+      - '${_REGION}'
+      - '--set-env-vars'
+      - 'GOOGLE_CLOUD_PROJECT=$PROJECT_ID'
+
+substitutions:
+  _REGION: asia-northeast1
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+images:
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/aozora/importer:$COMMIT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/aozora/importer:latest'

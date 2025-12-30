@@ -84,6 +84,7 @@ class AozoraFirestore:
 
         if should_update:
             ref = self.db.collection("books").document(book_id)
+            logger.info(f"Upserting book: {book_id}")
             self.batch.set(ref, data, merge=True)
             self.batch_count += 1
             self._flush_batch_if_needed()
@@ -115,6 +116,7 @@ class AozoraFirestore:
         pass  # Logic handled in next block to keep this pure.
 
         ref = self.db.collection("persons").document(person_id)
+        logger.info(f"Upserting person: {person_id}")
         self.batch.set(ref, data, merge=True)
         self.batch_count += 1
         self._flush_batch_if_needed()
@@ -123,6 +125,7 @@ class AozoraFirestore:
         """Upsert a contributor."""
         if contributor_id not in self.existing_contributors:
             ref = self.db.collection("contributors").document(contributor_id)
+            logger.info(f"Upserting contributor: {contributor_id}")
             self.batch.set(ref, data)
             self.batch_count += 1
             self._flush_batch_if_needed()
