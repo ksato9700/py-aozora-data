@@ -2,3 +2,10 @@ aozora.db
 list_person_all_extended_utf8*
 pid.html
 .env
+target/
+*.so
+*.dylib
+*.dll
+__pycache__/
+*.pyc
+.DS_Store

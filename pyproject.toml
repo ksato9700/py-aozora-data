@@ -5,7 +5,7 @@ description = "Aozora-bunko data model"
 authors = [{ name = "Ken Sato", email = "ksato9700@gmail.com" }]
 license = "MIT"
 readme = "README.md"
-requires-python = ">= 3.13"
+requires-python = "==3.13.*"
 
 dependencies = [
     "python-dotenv>=1.1",
@@ -79,10 +79,15 @@ files = "**/*.py"
 plugins = []
 
 [build-system]
-requires = ["setuptools>=61.0"] # setuptools is a common build backend with uv
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[tool.maturin]
+module-name = "aozora_data._sjis_to_utf8"
+python-source = "."
 
 [dependency-groups]
 dev = [
+    "maturin>=1.10.2",
     "types-requests>=2.32.4.20250913",
 ]

@@ -5,12 +5,12 @@ import re
 try:
     from .gaiji_table import GAIJI_TABLE
 except ImportError:
-    # Fallback or empty if not generated yet?
-    # Since we are guaranteeing it exists, we can likely just import.
-    # But to be safe against partial installs, let's just initialize empty if missing
-    # (though that would break functionality).
-    # Better to assume it's there as per our plan.
     GAIJI_TABLE = {}
+
+try:
+    from aozora_data._sjis_to_utf8 import convert_content as convert_content_rs
+except ImportError:
+    convert_content_rs = None
 
 
 def load_gaiji_table(table_path: str = "jisx0213-2004-std.txt") -> None:
@@ -81,7 +81,7 @@ def sub_gaiji(text: str) -> str:
     return re.sub(r"※［＃.+?］", lambda m: get_gaiji(m.group(0)), text)  # noqa: RUF001
 
 
-def convert_content(content: bytes) -> str:
+def convert_content_py(content: bytes) -> str:
     """Decode Shift JIS (JIS X 0208) bytes to a UTF-8 string and replaces Aozora Bunko Gaiji.
 
     Args:
@@ -94,6 +94,16 @@ def convert_content(content: bytes) -> str:
     # Using 'shift_jis' strictly as per Aozora Bunko specifications.
     text = content.decode("shift_jis")
     return sub_gaiji(text)
+
+
+def convert_content(content: bytes) -> str:
+    """Decode Shift JIS to UTF-8 with Gaiji support.
+
+    Uses Rust implementation if available, otherwise falls back to Python.
+    """
+    if convert_content_rs:
+        return convert_content_rs(content)
+    return convert_content_py(content)
 
 
 def convert_file(src_path: str, dest_path: str) -> None:
