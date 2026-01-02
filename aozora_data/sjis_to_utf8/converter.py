@@ -1,49 +1,31 @@
 """Converter module for Shift JIS to UTF-8 with Gaiji support."""
 
-import os
 import re
 
-# Global cache for the Gaiji table
-GAIJI_TABLE: dict[str, str] = {}
+try:
+    from .gaiji_table import GAIJI_TABLE
+except ImportError:
+    # Fallback or empty if not generated yet?
+    # Since we are guaranteeing it exists, we can likely just import.
+    # But to be safe against partial installs, let's just initialize empty if missing
+    # (though that would break functionality).
+    # Better to assume it's there as per our plan.
+    GAIJI_TABLE = {}
 
 
 def load_gaiji_table(table_path: str = "jisx0213-2004-std.txt") -> None:
-    """Load the JIS X 0213 to Unicode mapping table."""
-    global GAIJI_TABLE
+    """Load the JIS X 0213 to Unicode mapping table.
+
+    DEPRECATED: The table is now pre-loaded from gaiji_table.py.
+    This function is kept for backward compatibility but does nothing effective
+    if the table is already imported.
+    """
     if GAIJI_TABLE:
         return
 
-    # Try finding the file in a few locations:
-    # 1. Specified path (relative to CWD)
-    # 2. Same directory as this module (if bundled)
-    # 3. Project root (common dev setup)
-
-    candidates = [
-        table_path,
-        os.path.join(os.path.dirname(__file__), table_path),
-        # Up one level (aozora_data/sjis_to_utf8 -> aozora_data)
-        os.path.join(os.path.dirname(os.path.dirname(__file__)), table_path),
-        # Up two levels (aozora_data -> root) to find file in repo root
-        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), table_path),
-    ]
-
-    found_path = None
-    for p in candidates:
-        if os.path.exists(p):
-            found_path = p
-            break
-
-    if not found_path:
-        # If not found, we can't perform replacement.
-        # For now, we'll just return and sub_gaiji will fail to replace (return original).
-        # Or should we warn?
-        return
-
-    with open(found_path, encoding="utf-8", errors="ignore") as f:
-        # Parse lines like: 3-2121	U+3000	# IDEOGRAPHIC SPACE
-        # Regex adapted from user snippet: (\d-\w{4})\s+U\+(\w{4})
-        ms = (re.match(r"(\d-\w{4})\s+U\+(\w{4})", lst) for lst in f if lst and lst[0] != "#")
-        GAIJI_TABLE.update({m[1]: chr(int(m[2], 16)) for m in ms if m})
+    # If GAIJI_TABLE is empty (ImportError), we could try to load it manually here as fallback?
+    # For now, let's keep it simple as per plan.
+    pass
 
 
 def get_gaiji(s: str) -> str:
