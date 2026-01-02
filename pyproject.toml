@@ -23,6 +23,7 @@ Homepage = "https://github.com/your-username/py-aozora-data" # Replace with your
 [project.scripts]
 # If you have any scripts, define them here, e.g.:
 # my-script = "aozora_data.cli:main"
+sjis-to-utf8 = "aozora_data.sjis_to_utf8.cli:main"
 
 [project.optional-dependencies]
 dev = [
