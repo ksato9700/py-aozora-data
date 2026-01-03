@@ -1,4 +1,3 @@
-aozora.db
 list_person_all_extended_utf8*
 pid.html
 .env
@@ -9,3 +8,5 @@ target/
 __pycache__/
 *.pyc
 .DS_Store
+sjis/
+utf-8*/

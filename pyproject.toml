@@ -14,6 +14,7 @@ dependencies = [
     "cssselect>=1.3",
     "google-cloud-firestore>=2.0",
     "google-auth>=2.45.0",
+    "brotli>=1.1.0",
 ]
 
 [project.urls]
@@ -24,6 +25,8 @@ Homepage = "https://github.com/your-username/py-aozora-data" # Replace with your
 # If you have any scripts, define them here, e.g.:
 # my-script = "aozora_data.cli:main"
 sjis-to-utf8 = "aozora_data.sjis_to_utf8.cli:main"
+download-all = "aozora_data.download_all:main"
+convert-all = "aozora_data.convert_all:main"
 
 [project.optional-dependencies]
 dev = [
@@ -31,7 +34,7 @@ dev = [
     "requests-mock>=1.12",
     "pre-commit>=4.2",
     "mypy>=1.15",
-    "ruff>=0.11.10",
+    "ruff>=0.14.10",
 ]
 
 [tool.ruff]
