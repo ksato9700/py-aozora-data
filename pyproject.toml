@@ -2,7 +2,7 @@
 name = "py-aozora-data"
 version = "2.1.0"
 description = "Aozora-bunko data model"
-authors = [{ name = "Ken Sato", email = "ksato9700@gmail.com" }]
+authors = [{ name = "Kenichi Sato", email = "ksato9700@gmail.com" }]
 license = "MIT"
 readme = "README.md"
 requires-python = "==3.14.*"
