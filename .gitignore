@@ -9,4 +9,7 @@ __pycache__/
 *.pyc
 .DS_Store
 sjis/
-utf-8*/
+sjis_html/
+utf-8/
+utf-8_html/
+*.html
