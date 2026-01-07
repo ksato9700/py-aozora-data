@@ -1,19 +1,19 @@
 import argparse
 import sys
 
-from .converter import TextToXhtmlConverter
+from .converter import TextToHtmlConverter
 
 
 def main():
-    """Convert Aozora Bunko text to XHTML."""
-    parser = argparse.ArgumentParser(description="Convert Aozora Bunko text to XHTML.")
+    """Convert Aozora Bunko text to HTML5."""
+    parser = argparse.ArgumentParser(description="Convert Aozora Bunko text to HTML5.")
     parser.add_argument("input", help="Path to input text file (UTF-8)")
-    parser.add_argument("output", help="Path to output XHTML file")
+    parser.add_argument("output", help="Path to output HTML file")
 
     args = parser.parse_args()
 
     try:
-        converter = TextToXhtmlConverter(args.input, args.output)
+        converter = TextToHtmlConverter(args.input, args.output)
         converter.convert()
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

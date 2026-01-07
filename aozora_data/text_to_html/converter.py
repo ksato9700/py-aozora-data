@@ -51,8 +51,8 @@ class CharStream:
         return "".join(res)
 
 
-class TextToXhtmlConverter:
-    """Convert Aozora Bunko text to XHTML."""
+class TextToHtmlConverter:
+    """Convert Aozora Bunko text to HTML5."""
 
     def __init__(self, input_path: str, output_path: str) -> None:
         """Initialize the converter."""
@@ -72,7 +72,7 @@ class TextToXhtmlConverter:
         ):
             self.stream = CharStream(f_in)
             self._parse_header()
-            self._write_xhtml_header(f_out)
+            self._write_html_header(f_out)
             self._parse_and_write_body(f_out)
             self._write_footer(f_out)
 
@@ -122,17 +122,15 @@ class TextToXhtmlConverter:
         except UnicodeEncodeError:
             return False
 
-    def _write_xhtml_header(self, f: TextIO) -> None:
+    def _write_html_header(self, f: TextIO) -> None:
         t = self.metadata.get("title", "")
         a = self.metadata.get("author", "")
         ft = f"{t} ({a})" if a else t
-        f.write(f"""<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+        f.write(f"""<!DOCTYPE html>
+<html lang="ja">
 <head>
-<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
-<meta http-equiv="content-style-type" content="text/css" />
-<link rel="stylesheet" type="text/css" href="../../aozora.css" />
+<meta charset="UTF-8" />
+<link rel="stylesheet" href="../../aozora.css" />
 <title>{html.escape(ft)}</title>
 <link rel="Schema.DC" href="http://purl.org/dc/elements/1.1/" />
 <meta name="DC.Title" content="{html.escape(t)}" />
@@ -168,7 +166,7 @@ class TextToXhtmlConverter:
                 self._handle_note_symbol()
             elif c == "\n":
                 self._flush(f)
-                f.write("<br />\n")
+                f.write("<br>\n")
             else:
                 self._append(c)
 
@@ -201,7 +199,7 @@ class TextToXhtmlConverter:
         # Logic to check for "底本："
         full_text = "".join([x["text"] for x in self.buffer])
         if full_text.strip().startswith("底本："):
-            f.write('</div>\n<div class="bibliographical_information">\n<hr />\n<br />\n')
+            f.write('</div>\n<div class="bibliographical_information">\n<hr>\n<br>\n')
 
         for item in self.buffer:
             f.write(item["text"] if item["safe"] else html.escape(item["text"]))
@@ -233,7 +231,7 @@ class TextToXhtmlConverter:
             f.write(f'<{tag} class="midashi">{cmd}</{tag}>')
         elif "改ページ" in cmd:
             self._flush(f)
-            f.write('<hr />\n<div class="page_break"></div>')
+            f.write('<hr>\n<div class="page_break"></div>')
         else:
             pass
 

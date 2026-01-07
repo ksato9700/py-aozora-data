@@ -28,7 +28,7 @@ Homepage = "https://github.com/your-username/py-aozora-data" # Replace with your
 sjis-to-utf8 = "aozora_data.sjis_to_utf8.cli:main"
 download-all = "aozora_data.download_all:main"
 convert-all = "aozora_data.convert_all:main"
-text-to-xhtml = "aozora_data.text_to_xhtml.cli:main"
+text-to-html = "aozora_data.text_to_html.cli:main"
 
 [project.optional-dependencies]
 dev = [
