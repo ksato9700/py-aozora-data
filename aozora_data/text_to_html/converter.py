@@ -1,5 +1,6 @@
 # ruff: noqa: RUF001, RUF003
 import html
+import json
 import re
 from typing import Any, TextIO
 
@@ -130,12 +131,35 @@ class TextToHtmlConverter:
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
-<link rel="stylesheet" href="../../aozora.css" />
+<link rel="stylesheet" href="./aozora.css" />
 <title>{html.escape(ft)}</title>
-<link rel="Schema.DC" href="http://purl.org/dc/elements/1.1/" />
-<meta name="DC.Title" content="{html.escape(t)}" />
-<meta name="DC.Creator" content="{html.escape(a)}" />
-<meta name="DC.Publisher" content="青空文庫" />
+<link rel="schema.dcterms" href="http://purl.org/dc/terms/" />
+<meta name="dcterms.title" content="{html.escape(t)}" />
+<meta name="dcterms.creator" content="{html.escape(a)}" />
+<meta name="dcterms.publisher" content="青空文庫" />
+<meta name="dcterms.type" content="Text" />
+<meta name="dcterms.language" content="jpn" />
+<meta name="dcterms.license" content="https://www.aozora.gr.jp/guide/kijyunn.html" />
+<script type="application/ld+json">
+{
+            json.dumps(
+                {
+                    "@context": {
+                        "schema": "https://schema.org/",
+                        "dcterms": "http://purl.org/dc/terms/",
+                    },
+                    "@type": "schema:Book",
+                    "schema:name": t,
+                    "schema:author": {"@type": "schema:Person", "name": a},
+                    "schema:publisher": {"@type": "schema:Organization", "name": "青空文庫"},
+                    "dcterms:language": "jpn",
+                    "dcterms:format": "text/html",
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        }
+</script>
 </head>
 <body>
 <div class="metadata">

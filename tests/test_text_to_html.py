@@ -59,3 +59,40 @@ def test_metadata_extraction(tmp_path: pathlib.Path):
     assert "<title>吾輩は猫である (夏目 漱石)</title>" in output_content
     assert '<h1 class="title">吾輩は猫である</h1>' in output_content
     assert '<h2 class="author">夏目 漱石</h2>' in output_content
+
+
+def test_metadata_format(tmp_path: pathlib.Path):
+    input_file = tmp_path / "input.txt"
+    output_file = tmp_path / "output.html"
+
+    input_content = "十円札\n芥川龍之介\n\n本文"
+    input_file.write_text(input_content, encoding="utf-8")
+
+    converter = TextToHtmlConverter(str(input_file), str(output_file))
+    converter.convert()
+
+    output_content = output_file.read_text(encoding="utf-8")
+
+    # Check for dcterms meta tags
+    assert '<link rel="schema.dcterms" href="http://purl.org/dc/terms/" />' in output_content
+    assert '<meta name="dcterms.title" content="十円札" />' in output_content
+    assert '<meta name="dcterms.creator" content="芥川龍之介" />' in output_content
+    assert '<meta name="dcterms.publisher" content="青空文庫" />' in output_content
+    assert '<meta name="dcterms.type" content="Text" />' in output_content
+    assert '<meta name="dcterms.language" content="jpn" />' in output_content
+    assert (
+        '<meta name="dcterms.license" content="https://www.aozora.gr.jp/guide/kijyunn.html" />'
+        in output_content
+    )
+
+    # Check for absence of old DC tags
+    assert 'rel="Schema.DC"' not in output_content
+    assert 'name="DC.Title"' not in output_content
+
+    # Check for JSON-LD
+    assert '<script type="application/ld+json">' in output_content
+
+    # Basic JSON-LD structure check
+    assert '"@type": "schema:Book"' in output_content
+    assert '"schema:name": "十円札"' in output_content
+    assert '"dcterms:format": "text/html"' in output_content
