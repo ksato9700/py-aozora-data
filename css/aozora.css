@@ -1,0 +1,221 @@
+/*
+ * 青空文庫 CSS Modernization 2026
+ * Based on SPEC_CSS.md
+ */
+
+@layer reset, tokens, base, semantics, typography, annotations, themes;
+
+@layer reset {
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    html,
+    body {
+        block-size: 100%;
+    }
+}
+
+@layer tokens {
+    :root {
+        /* Colors (OKLCH) */
+        --bg-color: light-dark(oklch(99% 0.01 80), oklch(12% 0.02 260));
+        --text-color: light-dark(oklch(20% 0.01 80), oklch(92% 0.01 260));
+        --accent-color: light-dark(oklch(60% 0.2 120), oklch(70% 0.2 120));
+        --border-color: light-dark(oklch(90% 0 0), oklch(30% 0 0));
+
+        /* Typography */
+        --font-serif: "Hiragino Mincho ProN", "Yu Mincho", serif;
+        --font-sans: "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+        --base-font-size: 16px;
+        --line-height: 1.8;
+    }
+}
+
+@layer base {
+    html {
+        font-family: var(--font-serif);
+        font-size: var(--base-font-size);
+        line-height: var(--line-height);
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        text-align: justify;
+        hanging-punctuation: allow-end;
+    }
+
+    body {
+        padding: 2rem;
+    }
+}
+
+@layer semantics {
+
+    /* Main Container */
+    .aozora-work {
+        container-type: inline-size;
+        max-inline-size: 60ch;
+        /* Readable line length */
+        margin-inline: auto;
+    }
+
+    /* Multi-column layout for wider screens */
+    @container (inline-size > 1000px) {
+        .main_text {
+            column-count: 2;
+            column-gap: 3rem;
+            column-rule: 1px solid var(--border-color);
+        }
+    }
+
+    section {
+        margin-block-start: 2rem;
+    }
+
+    /* Headings */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-family: var(--font-sans);
+        font-weight: bold;
+        margin-block-end: 1rem;
+        text-box-trim: both;
+    }
+
+    h1.title {
+        font-size: 2rem;
+        text-align: center;
+        margin-block: 3rem 2rem;
+    }
+
+    h2,
+    .original_title,
+    .subtitle,
+    .author,
+    .editor,
+    .translator {
+        text-align: right;
+        font-size: 1.1rem;
+        font-weight: normal;
+    }
+
+    /* Metadata Section */
+    .metadata {
+        margin-block-end: 4rem;
+        border-block-end: 1px solid var(--border-color);
+        padding-block-end: 2rem;
+    }
+
+    /* Footer / Bibliographical Info */
+    footer {
+        margin-block-start: 4rem;
+        border-block-start: 1px solid var(--border-color);
+        padding-block-start: 2rem;
+        font-family: var(--font-sans);
+        font-size: 0.9rem;
+    }
+}
+
+@layer typography {
+
+    /* Indentation */
+    p {
+        text-indent: 1em;
+        margin-block-end: 0;
+        /* Let line-height handle it, or use minimal */
+    }
+
+    /* JIS Indents */
+    .jisage_1 {
+        padding-inline-start: 1em;
+    }
+
+    .jisage_2 {
+        padding-inline-start: 2em;
+    }
+
+    .jisage_3 {
+        padding-inline-start: 3em;
+    }
+
+    .jisage_4 {
+        padding-inline-start: 4em;
+    }
+
+    .jisage_5 {
+        padding-inline-start: 5em;
+    }
+
+    /* ... add more as needed ... */
+
+    .block {
+        display: block;
+    }
+
+    /* Page Break */
+    .page_break {
+        page-break-before: always;
+        break-before: page;
+        border-block-start: 1px dashed var(--border-color);
+        margin-block: 2rem;
+    }
+
+    hr {
+        border: 0;
+        border-block-start: 1px solid var(--border-color);
+        margin-block: 2rem;
+    }
+}
+
+@layer annotations {
+
+    /* Ruby */
+    ruby {
+        ruby-position: over;
+        ruby-align: space-around;
+    }
+
+    /* Notes */
+    aside,
+    .notes {
+        font-size: 0.8em;
+        color: var(--accent-color);
+        display: block;
+        margin-block: 0.5rem;
+    }
+
+    span.notes {
+        display: inline;
+    }
+
+    /* Auto-styling for consecutive figures */
+    section:has(figure + figure) {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+    }
+
+    figure {
+        margin-block: 1rem;
+        text-align: center;
+    }
+
+    figcaption {
+        font-size: 0.8rem;
+        color: gray;
+    }
+
+    /* Focus mode when aside is open (if using details/aside interaction) */
+    article:has(details[open]) .main_text {
+        opacity: 0.7;
+        filter: blur(1px);
+        transition: all 0.3s ease;
+    }
+}

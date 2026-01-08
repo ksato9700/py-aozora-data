@@ -20,11 +20,12 @@ def test_html5_header_structure(tmp_path: pathlib.Path):
     assert "<!DOCTYPE html>" in output_content
     assert '<html lang="ja-JP">' in output_content
     assert '<meta charset="UTF-8" />' in output_content
+    assert '<link rel="stylesheet" href="./css/aozora.css" />' in output_content
     assert (
         '<meta name="viewport" content="width=device-width, initial-scale=1.0" />' in output_content
     )
     assert "<main>" in output_content
-    assert "<article>" in output_content
+    assert '<article class="aozora-work">' in output_content
     assert "</article>" in output_content
     assert "</main>" in output_content
     assert "<?xml" not in output_content
@@ -35,8 +36,8 @@ def test_void_elements(tmp_path: pathlib.Path):
     input_file = tmp_path / "input.txt"
     output_file = tmp_path / "output.html"
 
-    # \n becomes <br>
-    # ［＃改ページ］ becomes <hr>
+    # \n becomes </p>\n<p>
+    # ［＃改ページ］ becomes </p>\n<hr>\n<div class="page_break"></div>\n<p>
     input_content = "TITLE\nAUTHOR\n\nLine1\nLine2［＃改ページ］Line3"
     input_file.write_text(input_content, encoding="utf-8")
 
@@ -45,10 +46,11 @@ def test_void_elements(tmp_path: pathlib.Path):
 
     output_content = output_file.read_text(encoding="utf-8")
 
-    assert "<br>" in output_content
-    assert "<br />" not in output_content
+    assert "<p>Line1</p>" in output_content
+    assert "<p>Line2</p>" in output_content
+    assert "<p>Line3</p>" in output_content
+    assert "Line1<br>" not in output_content
     assert "<hr>" in output_content
-    assert "<hr />" not in output_content
 
 
 def test_metadata_extraction(tmp_path: pathlib.Path):
@@ -173,4 +175,4 @@ def test_semantic_footer(tmp_path: pathlib.Path):
     assert "<footer>" in output_content
     assert '<div class="bibliographical_information">' in output_content
     assert "</footer>" in output_content
-    assert output_content.index("</article>") < output_content.index("<footer>")
+    assert output_content.index("<footer>") < output_content.index("</article>")

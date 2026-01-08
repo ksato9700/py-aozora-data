@@ -180,7 +180,7 @@ class TextToHtmlConverter:
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="stylesheet" href="./aozora.css" />
+<link rel="stylesheet" href="./css/aozora.css" />
 <title>{html.escape(ft)}</title>
 <link rel="schema.dcterms" href="http://purl.org/dc/terms/" />
 <meta name="dcterms.title" content="{html.escape(t)}" />
@@ -212,14 +212,14 @@ class TextToHtmlConverter:
 </head>
 <body>
 <main>
-<article>
+<article class="aozora-work">
 <div class="metadata">
 <h1 class="title">{html.escape(t)}</h1>
 """)
         for k in ["original_title", "subtitle", "author", "editor", "translator"]:
             if (v := self.metadata.get(k)) and k != "title":
                 f.write(f'<h2 class="{k}">{html.escape(v)}</h2>\n')
-        f.write('</div>\n<div class="main_text">')
+        f.write('</div>\n<div class="main_text">\n<section>\n<p>')
 
     def _parse_and_write_body(self, f: TextIO) -> None:
         if not self.stream:
@@ -245,7 +245,7 @@ class TextToHtmlConverter:
                 self._handle_note_symbol()
             elif c == "\n":
                 self._flush(f)
-                f.write("<br>\n")
+                f.write("</p>\n<p>")
             else:
                 self._append(c)
 
@@ -263,7 +263,7 @@ class TextToHtmlConverter:
             if self.stream.peek() == "＃":
                 self.stream.read()  # Sharp
                 note = self.stream.read_until("］")
-                self._append(f'<span class="notes">［＃{html.escape(note)}］</span>', raw=True)
+                self._append(f'<aside class="notes">［＃{html.escape(note)}］</aside>', raw=True)
             else:
                 self._append("※［")
         else:
@@ -279,9 +279,10 @@ class TextToHtmlConverter:
         full_text = "".join([x["text"] for x in self.buffer])
         if full_text.strip().startswith("底本："):
             f.write(
-                '</div>\n</article>\n<footer>\n<div class="bibliographical_information">\n<hr>\n<br>\n'  # noqa: E501
+                '</p>\n</section>\n</div>\n<footer>\n<div class="bibliographical_information">\n<hr>\n<br>\n'  # noqa: E501
             )
             self.in_footer = True
+            # Note: We don't start a new p here as we are in footer div
 
         for item in self.buffer:
             f.write(item["text"] if item["safe"] else html.escape(item["text"]))
@@ -291,17 +292,20 @@ class TextToHtmlConverter:
     def _handle_cmd(self, cmd: str, f: TextIO) -> None:
         if cmd.startswith("ここから"):
             self._flush(f)
+            # Close current paragraph
+            f.write("</p>")
             cls = "jisage" if "字下げ" in cmd else "keigakomi" if "罫囲み" in cmd else "block"
             # Extract depth for jisage? "ここから１字下げ"
             if m := re.search(r"([０-９]+)字下げ", cmd):
                 cls = f"jisage_{self._kanji_num(m.group(1))}"
-            f.write(f'<div class="{cls}">')
+            f.write(f'<div class="{cls}">\n<p>')
             self.indent_stack.append(cls)
         elif cmd.endswith("終わり") and cmd != "文頭":
             self._flush(f)
             if self.indent_stack:
                 self.indent_stack.pop()
-                f.write("</div>")
+                # Close paragraph inside div, close div, start new paragraph
+                f.write("</p></div>\n<p>")
         elif "見出し" in cmd:
             self._flush(f)
             # Check size
@@ -310,10 +314,12 @@ class TextToHtmlConverter:
                 tag = "h3"
             elif "中" in cmd:
                 tag = "h4"
-            f.write(f'<{tag} class="midashi">{cmd}</{tag}>')
+            # Close previous p, close previous section, start new section, start new p (after heading)
+            f.write(f'</p>\n</section>\n<section>\n<{tag} class="midashi">{cmd}</{tag}>\n<p>')
         elif "改ページ" in cmd:
             self._flush(f)
-            f.write('<hr>\n<div class="page_break"></div>')
+            # Close p, break, start new p
+            f.write('</p>\n<hr>\n<div class="page_break"></div>\n<p>')
         else:
             pass
 
@@ -373,9 +379,11 @@ class TextToHtmlConverter:
         return s.translate(tr)
 
     def _write_footer(self, f: TextIO) -> None:
-        f.write("</div>\n")
         if self.in_footer:
+            f.write("</div>\n")
             f.write("</footer>\n")
-        else:
             f.write("</article>\n")
+        else:
+            # Close stray p if not in footer
+            f.write("</p>\n</section>\n</div>\n</article>\n")
         f.write("</main>\n</body>\n</html>\n")
