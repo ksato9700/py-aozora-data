@@ -39,6 +39,10 @@ class CharStream:
         self.buffer.append(c)
         return c
 
+    def push_back(self, chars: list[str]) -> None:
+        """Push characters back onto the beginning of the buffer."""
+        self.buffer[:0] = chars
+
     def read_until(self, terminator: str) -> str:
         """Read characters from the stream until the terminator is found."""
         res = []
@@ -123,6 +127,49 @@ class TextToHtmlConverter:
         except UnicodeEncodeError:
             return False
 
+    def _skip_dash_block(self) -> None:
+        """Skip the dash-enclosed block if it exists at the current stream position."""
+        if not self.stream:
+            return
+
+        # Peek to see if the first line starts with
+        # "------------------------------------------------------"
+        line_chars = self._read_line_chars()
+        line = "".join(line_chars)
+
+        if self._is_dash_line(line):
+            self._consume_until_dash_line()
+        else:
+            self.stream.push_back(line_chars)
+
+    def _read_line_chars(self) -> list[str]:
+        """Read characters until a newline or EOF."""
+        if not self.stream:
+            return []
+        chars = []
+        while True:
+            c = self.stream.read()
+            if c is None:
+                break
+            chars.append(c)
+            if c == "\n":
+                break
+        return chars
+
+    def _is_dash_line(self, line: str) -> bool:
+        """Check if the line starts with a sequence of dashes."""
+        return line.startswith("-" * 20)
+
+    def _consume_until_dash_line(self) -> None:
+        """Read and discard lines until a closing dash line is found."""
+        while True:
+            line_chars = self._read_line_chars()
+            line = "".join(line_chars)
+            if not line:  # End of stream
+                break
+            if self._is_dash_line(line):
+                return
+
     def _write_html_header(self, f: TextIO) -> None:
         t = self.metadata.get("title", "")
         a = self.metadata.get("author", "")
@@ -173,6 +220,10 @@ class TextToHtmlConverter:
     def _parse_and_write_body(self, f: TextIO) -> None:
         if not self.stream:
             return
+
+        # Check for dash block at the beginning
+        self._skip_dash_block()
+
         while True:
             c = self.stream.read()
             if c is None:

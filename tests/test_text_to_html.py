@@ -96,3 +96,49 @@ def test_metadata_format(tmp_path: pathlib.Path):
     assert '"@type": "schema:Book"' in output_content
     assert '"schema:name": "十円札"' in output_content
     assert '"dcterms:format": "text/html"' in output_content
+
+
+def test_dash_block_removal(tmp_path: pathlib.Path):
+    input_file = tmp_path / "input_with_dash.txt"
+    output_file = tmp_path / "output_with_dash.html"
+
+    input_content = """タイトル
+著者
+
+-------------------------------------------------------
+【テキスト中に現れる記号について】
+
+《》：ルビ
+（）：注記
+-------------------------------------------------------
+
+本文です。"""
+    input_file.write_text(input_content, encoding="utf-8")
+
+    converter = TextToHtmlConverter(str(input_file), str(output_file))
+    converter.convert()
+
+    output_content = output_file.read_text(encoding="utf-8")
+
+    assert "本文です。" in output_content
+    assert "【テキスト中に現れる記号について】" not in output_content
+    assert "-------------------------------------------------------" not in output_content
+
+
+def test_no_dash_block(tmp_path: pathlib.Path):
+    input_file = tmp_path / "input_no_dash.txt"
+    output_file = tmp_path / "output_no_dash.html"
+
+    input_content = """タイトル
+著者
+
+本文です。"""
+    input_file.write_text(input_content, encoding="utf-8")
+
+    converter = TextToHtmlConverter(str(input_file), str(output_file))
+    converter.convert()
+
+    output_content = output_file.read_text(encoding="utf-8")
+
+    assert "本文です。" in output_content
+    assert "-------------------------------------------------------" not in output_content
