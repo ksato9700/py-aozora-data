@@ -68,6 +68,7 @@ class TextToHtmlConverter:
         self.buffer: list[dict[str, Any]] = []  # List of {'text': str, 'safe': bool}
         self.indent_stack: list[str] = []
         self.ruby_rb_start: int | None = None
+        self.in_footer = False
 
     def convert(self) -> None:
         """Convert the input file to XHTML."""
@@ -175,9 +176,10 @@ class TextToHtmlConverter:
         a = self.metadata.get("author", "")
         ft = f"{t} ({a})" if a else t
         f.write(f"""<!DOCTYPE html>
-<html lang="ja">
+<html lang="ja-JP">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="stylesheet" href="./aozora.css" />
 <title>{html.escape(ft)}</title>
 <link rel="schema.dcterms" href="http://purl.org/dc/terms/" />
@@ -209,6 +211,8 @@ class TextToHtmlConverter:
 </script>
 </head>
 <body>
+<main>
+<article>
 <div class="metadata">
 <h1 class="title">{html.escape(t)}</h1>
 """)
@@ -274,7 +278,10 @@ class TextToHtmlConverter:
         # Logic to check for "底本："
         full_text = "".join([x["text"] for x in self.buffer])
         if full_text.strip().startswith("底本："):
-            f.write('</div>\n<div class="bibliographical_information">\n<hr>\n<br>\n')
+            f.write(
+                '</div>\n</article>\n<footer>\n<div class="bibliographical_information">\n<hr>\n<br>\n'  # noqa: E501
+            )
+            self.in_footer = True
 
         for item in self.buffer:
             f.write(item["text"] if item["safe"] else html.escape(item["text"]))
@@ -366,4 +373,9 @@ class TextToHtmlConverter:
         return s.translate(tr)
 
     def _write_footer(self, f: TextIO) -> None:
-        f.write("</div>\n</body>\n</html>\n")
+        f.write("</div>\n")
+        if self.in_footer:
+            f.write("</footer>\n")
+        else:
+            f.write("</article>\n")
+        f.write("</main>\n</body>\n</html>\n")

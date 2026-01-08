@@ -18,8 +18,15 @@ def test_html5_header_structure(tmp_path: pathlib.Path):
 
     # Check for HTML5 DOCTYPE and structure
     assert "<!DOCTYPE html>" in output_content
-    assert '<html lang="ja">' in output_content
+    assert '<html lang="ja-JP">' in output_content
     assert '<meta charset="UTF-8" />' in output_content
+    assert (
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0" />' in output_content
+    )
+    assert "<main>" in output_content
+    assert "<article>" in output_content
+    assert "</article>" in output_content
+    assert "</main>" in output_content
     assert "<?xml" not in output_content
     assert "xmlns" not in output_content.split("<html")[1].split(">")[0]  # Check html tag attributes
 
@@ -142,3 +149,28 @@ def test_no_dash_block(tmp_path: pathlib.Path):
 
     assert "本文です。" in output_content
     assert "-------------------------------------------------------" not in output_content
+
+
+def test_semantic_footer(tmp_path: pathlib.Path):
+    input_file = tmp_path / "input_footer.txt"
+    output_file = tmp_path / "output_footer.html"
+
+    input_content = """タイトル
+著者
+
+本文
+
+底本：
+青空文庫"""
+    input_file.write_text(input_content, encoding="utf-8")
+
+    converter = TextToHtmlConverter(str(input_file), str(output_file))
+    converter.convert()
+
+    output_content = output_file.read_text(encoding="utf-8")
+
+    assert "</article>" in output_content
+    assert "<footer>" in output_content
+    assert '<div class="bibliographical_information">' in output_content
+    assert "</footer>" in output_content
+    assert output_content.index("</article>") < output_content.index("<footer>")
