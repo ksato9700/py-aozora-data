@@ -52,7 +52,7 @@ def main() -> None:
         # Expected filename format: <book_id>.utf8.txt
         # Output filename format: <book_id>.html
         stem = input_path.name.replace(".utf8.txt", "")
-        output_filename = f"{stem}.html"
+        output_filename = f"{stem}.utf8.html"
         output_path = output_dir / output_filename
 
         if output_path.exists():
