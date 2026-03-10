@@ -70,6 +70,14 @@ class AozoraFirestore:
             self._flush_batch_if_needed()
             self.seen_contributors.add(contributor_id)
 
+    def update_book_author(self, book_id: str, data: dict[str, Any]) -> None:
+        """Write author_name and author_id onto an existing book document."""
+        ref = self.db.collection("books").document(book_id)
+        logger.info(f"Updating book author: {book_id}")
+        self.batch.set(ref, data, merge=True)
+        self.batch_count += 1
+        self._flush_batch_if_needed()
+
     def commit(self):
         """Force commit remaining batch."""
         self._flush_batch_if_needed(force=True)

@@ -136,6 +136,11 @@ def import_from_csv(csv_stream: TextIO, db: AozoraFirestore, limit: int = 0):
     watermark = db.get_watermark()
     max_last_modified = watermark
 
+    # Maps book_id -> {author_name, author_id} for role-0 contributors
+    author_map: dict[str, dict] = {}
+    # Maps book_id -> {author_name, author_id} for first contributor seen (fallback)
+    first_contributor_map: dict[str, dict] = {}
+
     count = 0
     for row in csv_obj:
         if limit > 0 and count >= limit:
@@ -220,6 +225,15 @@ def import_from_csv(csv_stream: TextIO, db: AozoraFirestore, limit: int = 0):
             }
             db.upsert_contributor(contributor_id, contributor_data)
 
+            author_entry = {
+                "author_name": f"{row['last_name']} {row['first_name']}",
+                "author_id": _parse_int(person_id),
+            }
+            if role_id == 0:
+                author_map[book_id] = author_entry
+            if book_id not in first_contributor_map:
+                first_contributor_map[book_id] = author_entry
+
             count += 1
 
         except Exception as e:
@@ -227,8 +241,14 @@ def import_from_csv(csv_stream: TextIO, db: AozoraFirestore, limit: int = 0):
             # continue or raise? raise for now to debug
             raise
 
-    # Commit any remaining batch
-    # Commit any remaining batch
+    # Commit main batch (books, persons, contributors)
+    db.commit()
+
+    # Second pass: write author_name / author_id onto book documents
+    for book_id in first_contributor_map:
+        data = author_map.get(book_id) or first_contributor_map[book_id]
+        db.update_book_author(book_id, data)
+
     db.commit()
 
     # Save new watermark

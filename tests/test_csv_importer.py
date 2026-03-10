@@ -37,6 +37,12 @@ class FakeFirestore(AozoraFirestore):
     def upsert_contributor(self, contributor_id: str, data: dict):
         self.stored_contributors[contributor_id] = data
 
+    def update_book_author(self, book_id: str, data: dict):
+        if book_id in self.stored_books:
+            self.stored_books[book_id].update(data)
+        else:
+            self.stored_books[book_id] = data
+
     def commit(self):
         pass
 
@@ -81,6 +87,23 @@ def test_import_from_csv(db: FakeFirestore):
                 assert cdata["role"] == 1  # Translator
                 break
         assert found
+
+        # Author denormalization
+        # book 10003 has 著者 (role 0) — primary author stored directly
+        assert db.stored_books["10003"]["author_name"] == "last_name_03 first_name_03"
+        assert db.stored_books["10003"]["author_id"] == 20003
+
+        # book 10001 has 翻訳者 (role 1) only — falls back to first contributor
+        assert db.stored_books["10001"]["author_name"] == "last_name_01 first_name_01"
+        assert db.stored_books["10001"]["author_id"] == 20001
+
+        # book 10000 has 編者 (role 2) only — falls back to first contributor
+        assert db.stored_books["10000"]["author_name"] == "last_name_00 first_name_00"
+        assert db.stored_books["10000"]["author_id"] == 20000
+
+        # book 10002 has 校訂者 (role 3) only — falls back to first contributor
+        assert db.stored_books["10002"]["author_name"] == "last_name_02 first_name_02"
+        assert db.stored_books["10002"]["author_id"] == 20002
 
 
 def test_import_from_csv_url(db: FakeFirestore, requests_mock: Mocker):
