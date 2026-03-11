@@ -7,15 +7,17 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 WORKDIR /app
 
 # Copy dependency files
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock README.md ./
 
 # Install dependencies
 # --frozen: use uv.lock
 # --no-dev: exclude dev dependencies
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-cache
 
-# Copy source code
-COPY aozora_data ./aozora_data
+# Copy only the modules needed for the import pipeline
+COPY aozora_data/__init__.py ./aozora_data/__init__.py
+COPY aozora_data/db ./aozora_data/db
+COPY aozora_data/importer ./aozora_data/importer
 
 # Set environment variables
 # Ensure python (and scripts) installed by uv are in PATH.

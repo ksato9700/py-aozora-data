@@ -9,4 +9,5 @@ tests
 debug_*.py
 gemini.md
 cloudbuild.yaml
-README.md
+sjis*
+utf8*
