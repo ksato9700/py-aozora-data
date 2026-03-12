@@ -18,6 +18,7 @@ RUN uv sync --frozen --no-dev --no-cache
 COPY aozora_data/__init__.py ./aozora_data/__init__.py
 COPY aozora_data/db ./aozora_data/db
 COPY aozora_data/importer ./aozora_data/importer
+COPY aozora_data/algolia ./aozora_data/algolia
 
 # Set environment variables
 # Ensure python (and scripts) installed by uv are in PATH.

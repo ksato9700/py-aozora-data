@@ -12,6 +12,7 @@ dependencies = [
     "requests>=2.32",
     "google-cloud-firestore>=2.0",
     "google-auth>=2.45.0",
+    "algoliasearch",
 ]
 
 [project.urls]

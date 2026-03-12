@@ -100,6 +100,105 @@ def _parse_role(val: str) -> int:
     return 4
 
 
+def _process_row(
+    row: dict,
+    db: AozoraFirestore,
+    author_map: dict,
+    first_contributor_map: dict,
+    algolia_books: dict,
+    algolia_persons: dict,
+) -> None:
+    """Upsert one CSV row (book, person, contributor) into Firestore and collect Algolia records."""
+    book_id = row["book_id"]
+    person_id = row["person_id"]
+
+    book_data = {
+        "book_id": _parse_int(book_id),
+        "title": row["title"],
+        "title_yomi": row["title_yomi"],
+        "title_sort": row["title_sort"],
+        "subtitle": row["subtitle"],
+        "subtitle_yomi": row["subtitle_yomi"],
+        "original_title": row["original_title"],
+        "first_appearance": row["first_appearance"],
+        "ndc_code": row["ndc_code"],
+        "font_kana_type": row["font_kana_type"],
+        "copyright": _parse_bool(row["copyright"]),
+        "release_date": _parse_date(row["release_date"]),
+        "last_modified": _parse_date(row["last_modified"]),
+        "card_url": row["card_url"],
+        "base_book_1": row["base_book_1"],
+        "base_book_1_publisher": row["base_book_1_publisher"],
+        # ... include other book fields ...
+        "input": row["input"],
+        "proofing": row["proofing"],
+        "text_url": row["text_url"],
+        "text_last_modified": _parse_date(row["text_last_modified"]),
+        "text_encoding": row["text_encoding"],
+        "text_charset": row["text_charset"],
+        "text_updated": _parse_int(row["text_updated"]),
+        "html_url": row["html_url"],
+        "html_last_modified": _parse_date(row["html_last_modified"]),
+        "html_encoding": row["html_encoding"],
+        "html_charset": row["html_charset"],
+        "html_updated": _parse_int(row["html_updated"]),
+    }
+    db.upsert_book(book_id, book_data)
+    algolia_books[book_id] = {
+        "objectID": book_id,
+        "book_id": book_data["book_id"],
+        "title": book_data["title"],
+        "title_yomi": book_data["title_yomi"],
+        "font_kana_type": book_data["font_kana_type"],
+        "copyright": book_data["copyright"],
+    }
+
+    person_data = {
+        "person_id": _parse_int(person_id),
+        "first_name": row["first_name"],
+        "last_name": row["last_name"],
+        "last_name_yomi": row["last_name_yomi"],
+        "first_name_yomi": row["first_name_yomi"],
+        "last_name_sort": row["last_name_sort"],
+        "first_name_sort": row["first_name_sort"],
+        "last_name_roman": row["last_name_roman"],
+        "first_name_roman": row["first_name_roman"],
+        "date_of_birth": row["date_of_birth"],
+        "date_of_death": row["date_of_death"],
+        "author_copyright": _parse_bool(row["author_copyright"]),
+    }
+    db.upsert_person(person_id, person_data)
+    algolia_persons[person_id] = {
+        "objectID": person_id,
+        "person_id": person_data["person_id"],
+        "last_name": person_data["last_name"],
+        "first_name": person_data["first_name"],
+        "last_name_yomi": person_data["last_name_yomi"],
+        "first_name_yomi": person_data["first_name_yomi"],
+    }
+
+    role_id = _parse_role(row["role"])
+    contributor_id = f"{book_id}-{person_id}-{role_id}"
+    db.upsert_contributor(
+        contributor_id,
+        {
+            "id": contributor_id,
+            "book_id": _parse_int(book_id),
+            "person_id": _parse_int(person_id),
+            "role": role_id,
+        },
+    )
+
+    author_entry = {
+        "author_name": f"{row['last_name']} {row['first_name']}",
+        "author_id": _parse_int(person_id),
+    }
+    if role_id == 0:
+        author_map[book_id] = author_entry
+    if book_id not in first_contributor_map:
+        first_contributor_map[book_id] = author_entry
+
+
 def import_from_csv_url(csv_url: str, db: AozoraFirestore, limit: int = 0) -> None:
     """Import books, persons, and contributors from a CSV file URL."""
     resp = requests.get(csv_url)
@@ -141,99 +240,23 @@ def import_from_csv(csv_stream: TextIO, db: AozoraFirestore, limit: int = 0):
     # Maps book_id -> {author_name, author_id} for first contributor seen (fallback)
     first_contributor_map: dict[str, dict] = {}
 
+    # Algolia records accumulated during this run
+    algolia_books: dict[str, dict] = {}
+    algolia_persons: dict[str, dict] = {}
+
     count = 0
     for row in csv_obj:
         if limit > 0 and count >= limit:
             break
 
         try:
-            # Parse IDs
-            book_id = row["book_id"]
-            person_id = row["person_id"]
-
             row_last_modified = _parse_date(row["last_modified"])
-
-            # Update max_last_modified if current row is newer
             if row_last_modified and (not max_last_modified or row_last_modified > max_last_modified):
                 max_last_modified = row_last_modified
-
-            # Filter by Watermark
             if watermark and row_last_modified and row_last_modified <= watermark:
                 continue
 
-            # Prepare Book Data
-            # (Select fields belonging to Book)
-            book_data = {
-                "book_id": _parse_int(book_id),
-                "title": row["title"],
-                "title_yomi": row["title_yomi"],
-                "title_sort": row["title_sort"],
-                "subtitle": row["subtitle"],
-                "subtitle_yomi": row["subtitle_yomi"],
-                "original_title": row["original_title"],
-                "first_appearance": row["first_appearance"],
-                "ndc_code": row["ndc_code"],
-                "font_kana_type": row["font_kana_type"],
-                "copyright": _parse_bool(row["copyright"]),
-                "release_date": _parse_date(row["release_date"]),
-                "last_modified": _parse_date(row["last_modified"]),
-                "card_url": row["card_url"],
-                "base_book_1": row["base_book_1"],
-                "base_book_1_publisher": row["base_book_1_publisher"],
-                # ... include other book fields ...
-                "input": row["input"],
-                "proofing": row["proofing"],
-                "text_url": row["text_url"],
-                "text_last_modified": _parse_date(row["text_last_modified"]),
-                "text_encoding": row["text_encoding"],
-                "text_charset": row["text_charset"],
-                "text_updated": _parse_int(row["text_updated"]),
-                "html_url": row["html_url"],
-                "html_last_modified": _parse_date(row["html_last_modified"]),
-                "html_encoding": row["html_encoding"],
-                "html_charset": row["html_charset"],
-                "html_updated": _parse_int(row["html_updated"]),
-            }
-
-            db.upsert_book(book_id, book_data)
-
-            # Prepare Person Data
-            person_data = {
-                "person_id": _parse_int(person_id),
-                "first_name": row["first_name"],
-                "last_name": row["last_name"],
-                "last_name_yomi": row["last_name_yomi"],
-                "first_name_yomi": row["first_name_yomi"],
-                "last_name_sort": row["last_name_sort"],
-                "first_name_sort": row["first_name_sort"],
-                "last_name_roman": row["last_name_roman"],
-                "first_name_roman": row["first_name_roman"],
-                "date_of_birth": row["date_of_birth"],
-                "date_of_death": row["date_of_death"],
-                "author_copyright": _parse_bool(row["author_copyright"]),
-            }
-            db.upsert_person(person_id, person_data)
-
-            # Prepare Contributor Data
-            role_id = _parse_role(row["role"])
-            contributor_id = f"{book_id}-{person_id}-{role_id}"
-            contributor_data = {
-                "id": contributor_id,
-                "book_id": _parse_int(book_id),
-                "person_id": _parse_int(person_id),
-                "role": role_id,
-            }
-            db.upsert_contributor(contributor_id, contributor_data)
-
-            author_entry = {
-                "author_name": f"{row['last_name']} {row['first_name']}",
-                "author_id": _parse_int(person_id),
-            }
-            if role_id == 0:
-                author_map[book_id] = author_entry
-            if book_id not in first_contributor_map:
-                first_contributor_map[book_id] = author_entry
-
+            _process_row(row, db, author_map, first_contributor_map, algolia_books, algolia_persons)
             count += 1
 
         except Exception as e:
@@ -248,9 +271,27 @@ def import_from_csv(csv_stream: TextIO, db: AozoraFirestore, limit: int = 0):
     for book_id in first_contributor_map:
         data = author_map.get(book_id) or first_contributor_map[book_id]
         db.update_book_author(book_id, data)
+        if book_id in algolia_books:
+            algolia_books[book_id].update(data)
 
     db.commit()
 
     # Save new watermark
     if max_last_modified:
         db.save_watermark(max_last_modified)
+
+    _sync_algolia(algolia_books, algolia_persons)
+
+
+def _sync_algolia(algolia_books: dict, algolia_persons: dict) -> None:
+    """Index changed records to Algolia. Skipped if env vars are not set."""
+    if not algolia_books and not algolia_persons:
+        return
+    try:
+        from ..algolia.indexer import AlgoliaIndexer
+
+        indexer = AlgoliaIndexer()
+        indexer.index_books(list(algolia_books.values()))
+        indexer.index_persons(list(algolia_persons.values()))
+    except KeyError:
+        logger.info("ALGOLIA_APP_ID/ALGOLIA_ADMIN_KEY not set — skipping Algolia indexing.")
