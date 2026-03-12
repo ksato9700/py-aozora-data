@@ -11,9 +11,6 @@ steps:
     args: ['push', '${_REGION}-docker.pkg.dev/$PROJECT_ID/aozora/importer:latest']
 
   # 3. Update the Cloud Run Job
-  # Note: The Job must be created once manually or via terraform before this step works for 'update',
-  # or use 'replace' / 'deploy' (though 'jobs deploy' is preview or 'jobs create' fails if exists).
-  # 'gcloud run jobs update' is safe if exists.
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -26,15 +23,9 @@ steps:
       - '--region'
       - '${_REGION}'
       - '--set-env-vars'
-      - 'GOOGLE_CLOUD_PROJECT=$PROJECT_ID,ALGOLIA_APP_ID=$$ALGOLIA_APP_ID,ALGOLIA_ADMIN_KEY=$$ALGOLIA_ADMIN_KEY'
-    secretEnv: ['ALGOLIA_APP_ID', 'ALGOLIA_ADMIN_KEY']
-
-availableSecrets:
-  secretManager:
-    - versionName: projects/$PROJECT_ID/secrets/ALGOLIA_APP_ID/versions/latest
-      env: 'ALGOLIA_APP_ID'
-    - versionName: projects/$PROJECT_ID/secrets/ALGOLIA_ADMIN_KEY/versions/latest
-      env: 'ALGOLIA_ADMIN_KEY'
+      - 'GOOGLE_CLOUD_PROJECT=$PROJECT_ID'
+      - '--update-secrets'
+      - 'ALGOLIA_APP_ID=ALGOLIA_APP_ID:latest,ALGOLIA_ADMIN_KEY=ALGOLIA_ADMIN_KEY:latest'
 
 substitutions:
   _REGION: asia-northeast1
