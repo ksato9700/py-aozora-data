@@ -1,5 +1,10 @@
 # py-aozora-data
 
+> [!WARNING]
+> **This repository has been archived.** The code has been consolidated into
+> [aozora-pages](https://github.com/ksato9700/aozora-pages), where active
+> development continues.
+
 **Aozora Bunko Data Pipeline to Firestore**
 
 This project provides a data pipeline to download the official [Aozora Bunko](https://www.aozora.gr.jp/) book list (CSV) and import it into Google Cloud Firestore. It supports efficient differential updates by comparing existing metadata.
